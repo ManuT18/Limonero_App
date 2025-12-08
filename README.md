@@ -39,8 +39,8 @@ Una aplicación web moderna y eficiente para la gestión de emprendimientos de I
 Si solo quieres usar la aplicación para gestionar tu emprendimiento, **no necesitas instalar nada**.
 
 1.  Ve a la sección de **[Releases](https://github.com/ManuT18/Limonero_App/releases)** de este repositorio.
-2.  Busca la versión más reciente (ej: `v1.1`).
-3.  Descarga el archivo `index.html` (o `App-Limonero.html`).
+2.  Busca la versión más reciente.
+3.  Descarga el archivo `index.html`.
 4.  **¡Listo!** Haz doble clic en el archivo descargado para abrir la app en tu navegador. Funciona 100% offline.
 
 ### 💻 Para Desarrolladores y Contribuidores
@@ -49,23 +49,32 @@ Si quieres modificar el código, probar nuevas funciones o aportar al proyecto, 
 
 > **Nota:** Para aportar cambios, por favor **crea una nueva rama** (branch) desde `master`.
 
+**Requisitos previos:**
+
+- Tener instalado **[Node.js](https://nodejs.org/)** (versión LTS recomendada).
+- Tener instalado **Git**.
+
 1.  **Clonar el repositorio**
+
     ```bash
     git clone https://github.com/ManuT18/Limonero_App.git
     cd Limonero_App
     ```
 
 2.  **Crear tu rama de desarrollo**
+
     ```bash
     git checkout -b feature/nueva-funcionalidad
     ```
 
 3.  **Instalar dependencias**
+
     ```bash
     npm install
     ```
 
 4.  **Iniciar servidor de desarrollo**
+
     ```bash
     npm run dev
     ```
