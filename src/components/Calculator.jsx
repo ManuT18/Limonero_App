@@ -88,8 +88,201 @@ export function Calculator() {
     }
   }, [inputs, config]);
 
+  // Estados para datos externos (Inventario y Caja)
+  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
+  const [cashbook, setCashbook] = useLocalStorage("limonero_cashbook", []);
+
+  // Estado para el Modal de Impresión
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printConfig, setPrintConfig] = useState({
+    materialId: "",
+    adjustedPrice: 0,
+  });
+
+  // Efecto para inicializar el precio ajustable cuando hay resultados
+  useEffect(() => {
+    if (result) {
+      setPrintConfig((prev) => ({
+        ...prev,
+        adjustedPrice: result.precio_venta,
+      }));
+    }
+  }, [result]);
+
+  const handleOpenPrint = () => {
+    if (!result) return;
+    setPrintConfig({
+        materialId: "", 
+        adjustedPrice: result.precio_venta
+    });
+    setShowPrintModal(true);
+  };
+
+  const handleSmartRound = (direction) => {
+    const current = printConfig.adjustedPrice;
+    const step = 100;
+    let next;
+
+    if (direction === "up") {
+      if (current % step === 0) {
+        next = current + step;
+      } else {
+        next = Math.ceil(current / step) * step;
+      }
+    } else {
+      if (current % step === 0) {
+        next = current - step;
+      } else {
+        next = Math.floor(current / step) * step;
+      }
+    }
+    setPrintConfig((prev) => ({ ...prev, adjustedPrice: Math.max(0, next) }));
+  };
+
+  const handleConfirmPrint = () => {
+    if (!printConfig.materialId) {
+      alert("Por favor selecciona un material del inventario.");
+      return;
+    }
+    const material = inventory.find((i) => i.id === printConfig.materialId);
+    if (!material) return;
+
+    const pesoNecesario = parseFloat(inputs.peso) || 0;
+    if (material.stock < pesoNecesario) {
+        if(!confirm(`El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`)) {
+            return;
+        }
+    }
+
+    const newInventory = inventory.map((item) => {
+      if (item.id === printConfig.materialId) {
+        return { ...item, stock: item.stock - pesoNecesario };
+      }
+      return item;
+    });
+    setInventory(newInventory);
+
+    const newMovement = {
+      id: crypto.randomUUID(),
+      fecha: new Date().toLocaleString(),
+      tipo: "INGRESO",
+      monto: printConfig.adjustedPrice,
+      descripcion: `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`,
+    };
+    setCashbook([newMovement, ...cashbook]);
+
+    setShowPrintModal(false);
+    alert("¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja");
+  };
+
   return (
-    <div className="container">
+    <div className="container" style={{ position: "relative" }}>
+      {/* Print Modal Overlay */}
+      {showPrintModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "450px",
+              margin: "1rem",
+              background: "var(--surface)",
+            }}
+          >
+            <h3 className="section-title">Confirmar Impresión</h3>
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label className="label">1. Seleccionar Material (Inventario)</label>
+              <select
+                className="input"
+                value={printConfig.materialId}
+                onChange={(e) =>
+                  setPrintConfig({ ...printConfig, materialId: e.target.value })
+                }
+              >
+                <option value="">-- Selecciona un filamento --</option>
+                {inventory.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.tipo} {item.marca} - {item.color} ({item.stock}g disp.)
+                  </option>
+                ))}
+              </select>
+              {inputs.peso && (
+                  <div style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>
+                      Se descontarán <strong>{inputs.peso}g</strong> del stock seleccionado.
+                  </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: "2rem" }}>
+              <label className="label">2. Ajustar Precio Final (Smart Rounding)</label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  background: "var(--background)",
+                  padding: "1rem",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div style={{ flex: 1, fontSize: "2rem", fontWeight: "bold", textAlign: 'center' }}>
+                  ${printConfig.adjustedPrice.toFixed(0)}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => handleSmartRound("up")}
+                        title="Redondear arriba (+100)"
+                        style={{padding: '0.25rem 0.5rem'}}
+                    >
+                        ▲
+                    </button>
+                    <button 
+                        className="btn btn-secondary" 
+                        onClick={() => handleSmartRound("down")}
+                        title="Redondear abajo (-100)"
+                        style={{padding: '0.25rem 0.5rem'}}
+                    >
+                        ▼
+                    </button>
+                </div>
+              </div>
+              <div style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>
+                  Este monto se ingresará en el <strong>Libro de Caja</strong>.
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowPrintModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmPrint}>
+                Aceptar y Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid-2">
         {/* Columna Izquierda: Inputs */}
         <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
@@ -474,15 +667,7 @@ export function Calculator() {
         {/* Columna Derecha: Resultados */}
         <div>
           {result && (
-            <div
-              className="card"
-              style={{
-                position: "sticky",
-                top: "6rem",
-                background:
-                  "linear-gradient(to bottom right, #ffffff, #f8fafc)",
-              }}
-            >
+            <div className="card card-result">
               <div
                 className="section-title"
                 style={{ color: "var(--primary)" }}
@@ -549,17 +734,7 @@ export function Calculator() {
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)",
-                    padding: "1.5rem",
-                    borderRadius: "var(--radius)",
-                    color: "white",
-                    marginTop: "1rem",
-                    boxShadow: "0 10px 15px -3px rgba(79, 70, 229, 0.3)",
-                  }}
-                >
+                <div className="price-card">
                   <div
                     style={{
                       display: "flex",
@@ -568,14 +743,7 @@ export function Calculator() {
                     }}
                   >
                     <span style={{ opacity: 0.9 }}>Precio Sugerido</span>
-                    <span
-                      style={{
-                        background: "rgba(255,255,255,0.2)",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "4px",
-                        fontSize: "0.875rem",
-                      }}
-                    >
+                    <span className="price-badge">
                       x{config.multiplicador_ganancia}
                     </span>
                   </div>
@@ -613,6 +781,7 @@ export function Calculator() {
                     boxShadow: "0 10px 15px -3px rgba(70, 229, 123, 0.3)",
                     width: "100%",
                   }}
+                  onClick={handleOpenPrint}
                 >
                   Imprimir
                 </button>
