@@ -40,7 +40,7 @@ Si solo quieres usar la aplicación para gestionar tu emprendimiento, **no neces
 
 1.  Ve a la sección de **[Releases](https://github.com/ManuT18/Limonero_App/releases)** de este repositorio.
 2.  Busca la versión más reciente.
-3.  Descarga el archivo `index.html`.
+3.  Debajo del todo descarga el archivo `App-Limonero.html`.
 4.  **¡Listo!** Haz doble clic en el archivo descargado para abrir la app en tu navegador. Funciona 100% offline.
 
 ### 💻 Para Desarrolladores y Contribuidores
