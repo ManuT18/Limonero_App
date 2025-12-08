@@ -32,37 +32,49 @@ Una aplicación web moderna y eficiente para la gestión de emprendimientos de I
 - **Restauración Fácil**: Recupera tu información en segundos cargando tu archivo de backup.
 - **Privacidad**: Todos los datos se guardan localmente en tu navegador (`localStorage`), nada sube a servidores externos.
 
-## 🚀 Instalación y Uso
+## 🚀 Uso e Instalación
 
-Este proyecto utiliza **Vite** para una experiencia de desarrollo ultrarrápida.
+### 👤 Para Usuarios Finales (Recomendado)
+
+Si solo quieres usar la aplicación para gestionar tu emprendimiento, **no necesitas instalar nada**.
+
+1.  Ve a la sección de **[Releases](https://github.com/ManuT18/Limonero_App/releases)** de este repositorio.
+2.  Busca la versión más reciente (ej: `v1.1`).
+3.  Descarga el archivo `index.html` (o `App-Limonero.html`).
+4.  **¡Listo!** Haz doble clic en el archivo descargado para abrir la app en tu navegador. Funciona 100% offline.
+
+### 💻 Para Desarrolladores y Contribuidores
+
+Si quieres modificar el código, probar nuevas funciones o aportar al proyecto, sigue estos pasos:
+
+> **Nota:** Para aportar cambios, por favor **crea una nueva rama** (branch) desde `master`.
 
 1.  **Clonar el repositorio**
-
     ```bash
     git clone https://github.com/ManuT18/Limonero_App.git
     cd Limonero_App
     ```
 
-2.  **Instalar dependencias**
-
+2.  **Crear tu rama de desarrollo**
     ```bash
-    npm install
-    # o si usas yarn
-    yarn
+    git checkout -b feature/nueva-funcionalidad
     ```
 
-3.  **Iniciar el servidor de desarrollo**
+3.  **Instalar dependencias**
+    ```bash
+    npm install
+    ```
 
+4.  **Iniciar servidor de desarrollo**
     ```bash
     npm run dev
     ```
 
-    La aplicación estará disponible en `http://localhost:5173`.
-
-4.  **Construir para producción**
+5.  **Compilar versión final (SingleFile)**
     ```bash
     npm run build
     ```
+    El archivo resultante estará en `dist/index.html`.
 
 ## 🛠️ Tecnologías
 
