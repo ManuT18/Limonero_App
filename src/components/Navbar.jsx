@@ -1,7 +1,18 @@
 import React from "react";
-import { Calculator, Package, BookOpen, Citrus, Settings } from "lucide-react";
+import {
+  Calculator,
+  Package,
+  BookOpen,
+  Citrus,
+  Settings,
+  Sun,
+  Moon,
+} from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
 
 export function Navbar({ currentTab, onTabChange }) {
+  const { theme, toggleTheme } = useTheme();
+
   const tabs = [
     { id: "calculator", label: "Calculadora", icon: Calculator },
     { id: "inventory", label: "Inventario", icon: Package },
@@ -10,35 +21,10 @@ export function Navbar({ currentTab, onTabChange }) {
   ];
 
   return (
-    <nav
-      style={{
-        background: "rgba(255, 255, 255, 0.8)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid var(--border)",
-        position: "sticky",
-        top: 0,
-        zIndex: 100,
-      }}
-    >
-      <div
-        className="container"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "1rem 2rem",
-        }}
-      >
+    <nav className="navbar">
+      <div className="container navbar-container">
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #facc15 0%, #a3e635 100%)",
-              padding: "0.5rem",
-              borderRadius: "0.75rem",
-              color: "white",
-              boxShadow: "0 4px 6px -1px rgba(163, 230, 53, 0.3)",
-            }}
-          >
+          <div className="navbar-logo-bg">
             <Citrus size={24} />
           </div>
           <div>
@@ -65,29 +51,50 @@ export function Navbar({ currentTab, onTabChange }) {
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "0.5rem",
-            background: "var(--background)",
-            padding: "0.25rem",
-            borderRadius: "1rem",
-          }}
-        >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`btn btn-nav ${isActive ? "active" : ""}`}
-              >
-                <Icon size={18} />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              background:
+                "var(--surface)" /* Changed to surface for better contrast */,
+              padding: "0.25rem",
+              borderRadius: "1rem",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = currentTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`btn btn-nav ${isActive ? "active" : ""}`}
+                >
+                  <Icon size={18} />
+                  <span style={{ marginLeft: "0.5rem" }}>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost"
+            style={{
+              padding: "0.5rem",
+              borderRadius: "50%",
+              color: theme === "dark" ? "#fbbf24" : "var(--text-secondary)",
+            }}
+            title={
+              theme === "dark"
+                ? "Cambiar a Modo Claro"
+                : "Cambiar a Modo Oscuro"
+            }
+          >
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
         </div>
       </div>
     </nav>

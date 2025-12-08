@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Palette: Slate & Indigo */
+  /* Default (Light) Palette */
   --primary: #6366f1; /* Indigo 500 */
   --primary-hover: #4f46e5; /* Indigo 600 */
   --primary-light: #e0e7ff; /* Indigo 100 */
   
   --background: #f8fafc; /* Slate 50 */
   --surface: #ffffff;
+  --input-bg: #ffffff; /* New variable for inputs */
   
   --text-main: #0f172a; /* Slate 900 */
   --text-secondary: #64748b; /* Slate 500 */
@@ -21,12 +22,50 @@
   --danger: #ef4444; /* Red 500 */
   --danger-bg: #fee2e2;
 
+  --radius: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  
+  /* Shadows (Neutral) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Palette overrides */
+.dark {
+  --background: #121212;
+  --surface: #1E1E1E;
+  --input-bg: #2C2C2C;
+
+  --text-main: #E0E0E0;
+  --text-secondary: #A0A0A0;
+  --text-light: #6e6e6e;
+
+  --primary: #C8FF42; /* Brand Lime */
+  --primary-hover: #B2E639;
+  --primary-light: rgba(200, 255, 66, 0.15); /* Low opacity lime */
+
+  /* Specific override for base primary buttons if needed, or keep generic primary */
   
-  --radius: 0.75rem; /* 12px */
-  --radius-lg: 1rem; /* 16px */
+  --border: #333333;
+  
+  --success: #81C784;
+  --success-hover: #66bb6a;
+  --success-bg: rgba(129, 199, 132, 0.2);
+  
+  --danger: #E57373;
+  --danger-bg: rgba(229, 115, 115, 0.2);
+
+  /* Adjust shadows for dark mode to be more subtle or removed */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* Special case for Primary Button in Dark Mode */
+.dark .btn-primary {
+  background: linear-gradient(135deg, #7B68EE 0%, #614ddb 100%); /* Call to Action Purple */
+  color: white;
 }
 
 body {
@@ -65,6 +104,42 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
+.card-result {
+  position: sticky;
+  top: 6rem;
+  background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+}
+
+.dark .card-result {
+  background: linear-gradient(to bottom right, #1E1E1E, #252525);
+  border-color: var(--border);
+}
+
+.price-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  color: white; /* Default for Light Mode (Indigo bg) */
+  margin-top: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+}
+
+.dark .price-card {
+  color: #121212; /* Dark text for Dark Mode (Lime bg) */
+  box-shadow: 0 10px 15px -3px rgba(200, 255, 66, 0.3);
+}
+
+.price-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.dark .price-badge {
+  background: rgba(0, 0, 0, 0.1);
+}
+
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -93,7 +168,7 @@ body {
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: var(--input-bg);
   color: var(--text-main);
   font-size: 0.95rem;
   transition: all 0.2s;
@@ -233,6 +308,12 @@ body {
   box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 }
 
+.dark .btn-nav.active {
+  background: #333333; /* Dark grey as requested */
+  color: var(--primary);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
 /* Custom Dynamic Buttons */
 .btn-gradient-success {
   background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
@@ -255,6 +336,44 @@ body {
   filter: brightness(1.05);
 }
 
+
 .btn-gradient-success:active {
   transform: translateY(0) scale(0.98);
+}
+
+/* Navbar Styles (Refactored from inline) */
+.navbar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all 0.3s;
+}
+
+.dark .navbar {
+  background: rgba(30, 30, 30, 0.8); /* Darker semi-transparent for dark mode */
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+}
+
+.navbar-logo-bg {
+  background: linear-gradient(135deg, #facc15 0%, #a3e635 100%);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(163, 230, 53, 0.3);
+}
+
+.dark .navbar-logo-bg {
+  /* Ensure the logo pop fits the dark theme or keep it vibrant */
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #121212; /* Dark icon on bright lime */
+  box-shadow: 0 4px 10px rgba(200, 255, 66, 0.3);
 }
