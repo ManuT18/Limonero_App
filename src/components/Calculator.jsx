@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Package,
   Calculator as CalculatorIcon,
+  Save,
+  Trash2,
 } from "lucide-react";
 
 export function Calculator() {
@@ -25,6 +27,9 @@ export function Calculator() {
     multiplicador_ganancia: 2.0, // Multiplicador (ej: 2.0 = x2)
   });
 
+  const [presets, setPresets] = useLocalStorage("limonero_presets", []);
+  const [presetName, setPresetName] = useState("");
+
   // Datos de la Pieza
   const [inputs, setInputs] = useState({
     tiempo_horas: "",
@@ -38,8 +43,8 @@ export function Calculator() {
 
   const handleCalculate = () => {
     // 1. Normalizar inputs
-    const t_horas = parseFloat(inputs.tiempo_horas) || 0;
-    const t_minutos = parseFloat(inputs.tiempo_minutos) || 0;
+    const t_horas = parseInt(inputs.tiempo_horas) || 0;
+    const t_minutos = parseInt(inputs.tiempo_minutos) || 0;
     const tiempo_total_horas = t_horas + t_minutos / 60;
 
     const peso_gr = parseFloat(inputs.peso) || 0;
@@ -112,8 +117,8 @@ export function Calculator() {
   const handleOpenPrint = () => {
     if (!result) return;
     setPrintConfig({
-        materialId: "", 
-        adjustedPrice: result.precio_venta
+      materialId: "",
+      adjustedPrice: result.precio_venta,
     });
     setShowPrintModal(true);
   };
@@ -149,9 +154,13 @@ export function Calculator() {
 
     const pesoNecesario = parseFloat(inputs.peso) || 0;
     if (material.stock < pesoNecesario) {
-        if(!confirm(`El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`)) {
-            return;
-        }
+      if (
+        !confirm(
+          `El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`
+        )
+      ) {
+        return;
+      }
     }
 
     const newInventory = inventory.map((item) => {
@@ -172,7 +181,39 @@ export function Calculator() {
     setCashbook([newMovement, ...cashbook]);
 
     setShowPrintModal(false);
-    alert("¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja");
+    alert(
+      "¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja"
+    );
+    setShowPrintModal(false);
+    alert(
+      "¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja"
+    );
+  };
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) return;
+    const newPreset = {
+      id: crypto.randomUUID(),
+      name: presetName,
+      config: { ...config },
+    };
+    setPresets([...presets, newPreset]);
+    setPresetName("");
+    alert("Preset guardado correctamente.");
+  };
+
+  const handleLoadPreset = (id) => {
+    if (!id) return;
+    const preset = presets.find((p) => p.id === id);
+    if (preset) {
+      setConfig(preset.config);
+    }
+  };
+
+  const handleDeletePreset = (id) => {
+    if (confirm("¿Eliminar este preset?")) {
+      setPresets(presets.filter((p) => p.id !== id));
+    }
   };
 
   return (
@@ -206,7 +247,9 @@ export function Calculator() {
             <h3 className="section-title">Confirmar Impresión</h3>
 
             <div style={{ marginBottom: "1.5rem" }}>
-              <label className="label">1. Seleccionar Material (Inventario)</label>
+              <label className="label">
+                1. Seleccionar Material (Inventario)
+              </label>
               <select
                 className="input"
                 value={printConfig.materialId}
@@ -217,19 +260,29 @@ export function Calculator() {
                 <option value="">-- Selecciona un filamento --</option>
                 {inventory.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.tipo} {item.marca} - {item.color} ({item.stock}g disp.)
+                    {item.tipo} {item.marca} - {item.color} ({item.stock}g
+                    disp.)
                   </option>
                 ))}
               </select>
               {inputs.peso && (
-                  <div style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>
-                      Se descontarán <strong>{inputs.peso}g</strong> del stock seleccionado.
-                  </div>
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--text-secondary)",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  Se descontarán <strong>{inputs.peso}g</strong> del stock
+                  seleccionado.
+                </div>
               )}
             </div>
 
             <div style={{ marginBottom: "2rem" }}>
-              <label className="label">2. Ajustar Precio Final (Smart Rounding)</label>
+              <label className="label">
+                2. Ajustar Precio Final (Smart Rounding)
+              </label>
               <div
                 style={{
                   display: "flex",
@@ -241,34 +294,59 @@ export function Calculator() {
                   border: "1px solid var(--border)",
                 }}
               >
-                <div style={{ flex: 1, fontSize: "2rem", fontWeight: "bold", textAlign: 'center' }}>
+                <div
+                  style={{
+                    flex: 1,
+                    fontSize: "2rem",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                  }}
+                >
                   ${printConfig.adjustedPrice.toFixed(0)}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                    <button 
-                        className="btn btn-secondary" 
-                        onClick={() => handleSmartRound("up")}
-                        title="Redondear arriba (+100)"
-                        style={{padding: '0.25rem 0.5rem'}}
-                    >
-                        ▲
-                    </button>
-                    <button 
-                        className="btn btn-secondary" 
-                        onClick={() => handleSmartRound("down")}
-                        title="Redondear abajo (-100)"
-                        style={{padding: '0.25rem 0.5rem'}}
-                    >
-                        ▼
-                    </button>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSmartRound("up")}
+                    title="Redondear arriba (+100)"
+                    style={{ padding: "0.25rem 0.5rem" }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSmartRound("down")}
+                    title="Redondear abajo (-100)"
+                    style={{ padding: "0.25rem 0.5rem" }}
+                  >
+                    ▼
+                  </button>
                 </div>
               </div>
-              <div style={{fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>
-                  Este monto se ingresará en el <strong>Libro de Caja</strong>.
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "0.5rem",
+                }}
+              >
+                Este monto se ingresará en el <strong>Libro de Caja</strong>.
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 className="btn btn-secondary"
                 onClick={() => setShowPrintModal(false)}
@@ -303,6 +381,94 @@ export function Calculator() {
                 {showConfig ? "Ocultar" : "Editar"}
               </button>
             </div>
+
+            {showConfig ? (
+              <div
+                style={{
+                  marginBottom: "1.5rem",
+                  borderBottom: "1px solid var(--border)",
+                  paddingBottom: "1rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <input
+                    className="input"
+                    placeholder="Nombre nuevo preset (ej: PETG Alta Calidad)"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSavePreset}
+                    title="Guardar Preset"
+                  >
+                    <Save size={18} />
+                  </button>
+                </div>
+
+                {presets.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <label className="label">Presets Guardados:</label>
+                    {presets.map((p) => (
+                      <div
+                        key={p.id}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          background: "var(--background)",
+                          padding: "0.5rem",
+                          borderRadius: "var(--radius)",
+                        }}
+                      >
+                        <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
+                        <button
+                          className="btn-icon"
+                          style={{ color: "var(--danger)" }}
+                          onClick={() => handleDeletePreset(p.id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ marginBottom: "1rem" }}>
+                <select
+                  className="input"
+                  onChange={(e) => handleLoadPreset(e.target.value)}
+                  style={{ width: "100%", cursor: "pointer" }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    -- Cargar Preset Rápido --
+                  </option>
+                  {presets.length === 0 ? (
+                    <option disabled>No hay presets guardados</option>
+                  ) : (
+                    presets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
 
             {showConfig ? (
               <div
