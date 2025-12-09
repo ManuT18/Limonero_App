@@ -288,6 +288,7 @@ export function Cashbook() {
             <thead>
               <tr>
                 <th>Fecha</th>
+                <th>Nombre</th>
                 <th>Descripción</th>
                 <th>Tipo</th>
                 <th style={{ textAlign: "right" }}>Monto</th>
