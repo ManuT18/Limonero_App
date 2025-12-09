@@ -310,6 +310,9 @@ body {
 .badge-success { background: var(--success-bg); color: #065f46; }
 .badge-danger { background: var(--danger-bg); color: #991b1b; }
 
+.dark .badge-success { background: rgba(129, 199, 132, 0.15); color: #81C784; border: 1px solid rgba(129, 199, 132, 0.3); }
+.dark .badge-danger { background: rgba(229, 115, 115, 0.15); color: #E57373; border: 1px solid rgba(229, 115, 115, 0.3); }
+
 /* Navbar Buttons */
 .btn-nav {
   background: transparent;
