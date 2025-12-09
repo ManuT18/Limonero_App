@@ -4,10 +4,11 @@ import { Calculator } from "./components/Calculator";
 import { Inventory } from "./components/Inventory";
 import { Cashbook } from "./components/Cashbook";
 import { Settings } from "./components/Settings";
+import { Dashboard } from "./components/Dashboard"; // Importar Dashboard
 import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
-  const [currentTab, setCurrentTab] = useState("calculator");
+  const [currentTab, setCurrentTab] = useState("dashboard"); // Default a Dashboard
 
   return (
     <ThemeProvider>
@@ -21,6 +22,7 @@ function App() {
         <Navbar currentTab={currentTab} onTabChange={setCurrentTab} />
 
         <main style={{ padding: "2rem 0" }}>
+          {currentTab === "dashboard" && <Dashboard />}
           {currentTab === "calculator" && <Calculator />}
           {currentTab === "inventory" && <Inventory />}
           {currentTab === "cashbook" && <Cashbook />}

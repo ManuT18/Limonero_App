@@ -7,6 +7,7 @@ import {
   Settings,
   Sun,
   Moon,
+  Activity,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
 
@@ -14,6 +15,7 @@ export function Navbar({ currentTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
 
   const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: Activity },
     { id: "calculator", label: "Calculadora", icon: Calculator },
     { id: "inventory", label: "Inventario", icon: Package },
     { id: "cashbook", label: "Libro de Caja", icon: BookOpen },
