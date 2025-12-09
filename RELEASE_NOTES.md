@@ -30,7 +30,7 @@ Herramientas para el manejo de datos externos:
 
 ### ⚙️ Mejoras en Configuración
 
-- **Backups**: Sistema de Importación/Exportación (JSON) para resguardo de datos.
+- **Backups**: Sistema de Importación/Exportación (JSON y CSV) para resguardo de datos.
 - **Gestión de Caja**: Edición y eliminación de movimientos.
 - **Campo "Nombre"**: Nuevo campo para identificar entidad/persona en los movimientos.
 
