@@ -1,39 +1,43 @@
-# Release Funcional v1.1 🚀
+# 🍋 El Limonero - Release v1.2.0
 
-Esta versión marca un hito importante en la funcionalidad y usabilidad de **El Limonero**. Se han integrado todas las herramientas principales (Calculadora, Inventario, Caja) y se ha renovado la interfaz visual.
+Actualización que integra funcionalidades de gestión completas: Dashboard, Presets y Exportación.
 
-## ✨ Novedades Principales
+## ✨ Novedades Destacadas
 
-### 🌗 Modo Oscuro (Dark Mode)
+### 📊 Nuevo Dashboard (Panel de Control)
 
-- **Tema Integrado**: Ahora puedes cambiar entre modo claro y oscuro desde la barra de navegación.
-- **Persistencia**: La aplicación recuerda tu preferencia automáticamente.
-- **Paleta de Colores**: Diseño optimizado con colores de alto contraste (Lima/Gris Oscuro) para trabajar cómodamente de noche.
+Nueva pantalla de inicio para visualizar el estado del negocio:
 
-### 🖨️ Flujo de Impresión (Print Workflow)
+- **Balance Global**: Visualización de ingresos vs egresos.
+- **Valor del Inventario**: Cálculo del capital invertido en material.
+- **Gráficos**: Rendimiento financiero de los últimos 6 meses.
+- **KPIs**: Resumen de ventas e ingresos mensuales.
 
-- **Integración Total**: Al finalizar un cálculo, el botón **"Imprimir"** conecta todo el sistema.
-- **Modal de Confirmación**:
-  - Selecciona el material utilizado directamente desde tu **Inventario**.
-  - **Descuento Automático**: Resta el peso (gr) del stock de inventario al confirmar.
-  - **Registro en Caja**: Crea automáticamente un ingreso en el **Libro de Caja** con el monto de la venta.
+### 💾 Presets de Calculadora
 
-### 🧠 Redondeo Inteligente (Smart Rounding)
+Sistema para guardar y cargar configuraciones de costos:
 
-- Nueva herramienta en el modal de impresión para ajustar precios rápidamente.
-- Botones `▲` y `▼` para redondear al centenar más cercano (ej: $1.234 → $1.300) y luego saltar de a $100.
+- **Guardado**: Posibilidad de crear perfiles (ej: "PLA Estándar", "Resina").
+- **Carga Rápida**: Cambio de configuración mediante menú desplegable.
+- **Gestión**: Eliminación de presets no utilizados.
 
-### 📦 Portabilidad (Offline First)
+### 📤 Exportación de Datos (Excel/CSV)
 
-- **Single File Build**: La aplicación ahora se compila en un **único archivo HTML** (`index.html`).
-- **Sin Servidor**: Puedes ejecutar la app haciendo doble clic en el archivo, sin necesidad de instalar nada ni tener internet.
+Herramientas para el manejo de datos externos:
+
+- **Reportes**: Exportación de **Inventario** y **Libro de Caja** en formato `.csv`.
+- **Compatibilidad**: Archivos aptos para Excel, Google Sheets y LibreOffice.
+
+### ⚙️ Mejoras en Configuración
+
+- **Backups**: Sistema de Importación/Exportación (JSON) para resguardo de datos.
+- **Gestión de Caja**: Edición y eliminación de movimientos.
+- **Campo "Nombre"**: Nuevo campo para identificar entidad/persona en los movimientos.
 
 ---
 
-## 🛠️ Mejoras Técnicas
+## 🛠️ Mejoras de Calidad (QoL)
 
-- Refactorización de la `Navbar` y componentes UI.
-- Corrección de estilos en tarjetas de resultados.
-- Optimización de dependencias (`lucide-react`, `vite-plugin-singlefile`).
-
-> **Instalación**: Simplemente descarga el archivo `index.html` de los _assets_ y ábrelo en tu navegador favorito.
+- **Modo Oscuro**: Ajuste de contraste en textos y badges.
+- **Alertas de Seguridad**: Confirmación previa a eliminación de items.
+- **UI Responsiva**: Adaptación de la interfaz a diferentes tamaños de pantalla.
