@@ -1,1 +1,1 @@
-Feat: Implementa Dashboard como pantalla principal (KPIs, Graficos) y CSV Export en Settings. Agrega links en Navbar.
+Chore: Release v1.0.0 - Versión Inicial Completa con Dashboard, Presets y Exportación
