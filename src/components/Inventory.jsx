@@ -60,6 +60,46 @@ const sortItems = (items) => {
   });
 };
 
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+);
+
 export function Inventory() {
   const [items, setItems] = useLocalStorage("limonero_inventory", []);
   const [newItem, setNewItem] = useState({
@@ -95,10 +135,24 @@ export function Inventory() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este item?")) {
-      setItems(items.filter((item) => item.id !== id));
-      toast.error("Material eliminado");
-    }
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          closeToast={closeToast}
+          message="¿Eliminar este material?"
+          onConfirm={() => {
+             setItems((prev) => prev.filter((item) => item.id !== id));
+             toast.dismiss(); // Cierra el toast de confirmación si quedara abierto
+             setTimeout(() => toast.error("Material eliminado"), 100); // Feedback visual
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
   };
 
   const handleEdit = (item) => {

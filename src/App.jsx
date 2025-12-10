@@ -14,7 +14,11 @@ function App() {
 
   return (
     <ThemeProvider>
-      <ToastContainer position="bottom-right" theme="colored" />
+      <ToastContainer
+        position="bottom-right"
+        theme="colored"
+        autoClose={1000}
+      />
       <div
         style={{
           minHeight: "100vh",
