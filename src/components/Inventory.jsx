@@ -46,6 +46,19 @@ const getColor = (name) => {
   return map[lower] || "#9CA3AF"; // Default gray
 };
 
+const sortItems = (items) => {
+  return [...items].sort((a, b) => {
+    // 1. Tipo
+    const tipoComp = a.tipo.localeCompare(b.tipo);
+    if (tipoComp !== 0) return tipoComp;
+    // 2. Marca
+    const marcaComp = a.marca.localeCompare(b.marca);
+    if (marcaComp !== 0) return marcaComp;
+    // 3. Color
+    return a.color.localeCompare(b.color);
+  });
+};
+
 export function Inventory() {
   const [items, setItems] = useLocalStorage("limonero_inventory", []);
   const [newItem, setNewItem] = useState({
@@ -63,15 +76,17 @@ export function Inventory() {
   const handleAdd = () => {
     if (!newItem.tipo || !newItem.stock) return;
 
-    setItems([
-      ...items,
-      {
-        ...newItem,
-        id: crypto.randomUUID(),
-        stock: parseFloat(newItem.stock),
-        precio: parseFloat(newItem.precio),
-      },
-    ]);
+    setItems(
+      sortItems([
+        ...items,
+        {
+          ...newItem,
+          id: crypto.randomUUID(),
+          stock: parseFloat(newItem.stock),
+          precio: parseFloat(newItem.precio),
+        },
+      ])
+    );
     setNewItem({ tipo: "", marca: "", color: "", stock: "", precio: "" });
     setIsAdding(false);
   };
@@ -89,14 +104,16 @@ export function Inventory() {
 
   const handleSaveEdit = () => {
     setItems((prev) =>
-      prev.map((item) =>
-        item.id === editingId
-          ? {
-              ...editValues,
-              stock: parseFloat(editValues.stock) || 0,
-              precio: parseFloat(editValues.precio) || 0,
-            }
-          : item
+      sortItems(
+        prev.map((item) =>
+          item.id === editingId
+            ? {
+                ...editValues,
+                stock: parseFloat(editValues.stock) || 0,
+                precio: parseFloat(editValues.precio) || 0,
+              }
+            : item
+        )
       )
     );
     setEditingId(null);
@@ -113,7 +130,7 @@ export function Inventory() {
       ...item,
       id: crypto.randomUUID(),
     };
-    setItems([...items, duplicatedItem]);
+    setItems(sortItems([...items, duplicatedItem]));
   };
 
   const filteredItems = items.filter(
