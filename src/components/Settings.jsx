@@ -1,4 +1,5 @@
 import React, { useRef } from "react";
+import { toast } from "react-toastify";
 import {
   Download,
   Upload,
@@ -54,9 +55,7 @@ export function Settings() {
 
         // Validación básica
         if (!json.inventory && !json.cashbook) {
-          alert(
-            "El archivo no parece ser un backup válido de esta aplicación."
-          );
+          toast.error("El archivo no es un backup válido.");
           return;
         }
 
@@ -76,12 +75,12 @@ export function Settings() {
               JSON.stringify(json.cashbook)
             );
 
-          alert("¡Datos importados con éxito! La página se recargará.");
-          window.location.reload();
+          toast.success("¡Datos importados! Recargando...");
+          setTimeout(() => window.location.reload(), 1500);
         }
       } catch (error) {
         console.error(error);
-        alert("Error al leer el archivo. Asegúrate de que sea un JSON válido.");
+        toast.error("Error al leer archivo. Verifica que sea un JSON válido.");
       }
     };
     reader.readAsText(file);
@@ -90,10 +89,10 @@ export function Settings() {
 
   const handleExportInventoryCSV = () => {
     const data = localStorage.getItem("limonero_inventory");
-    if (!data) return alert("No hay datos de inventario.");
+    if (!data) return toast.info("No hay datos de inventario.");
 
     const inventory = JSON.parse(data);
-    if (inventory.length === 0) return alert("El inventario está vacío.");
+    if (inventory.length === 0) return toast.info("El inventario está vacío.");
 
     // Aplanar/Seleccionar columnas relevantes si se desea, o exportar todo
     const csv = convertToCSV(inventory);
@@ -105,10 +104,10 @@ export function Settings() {
 
   const handleExportCashbookCSV = () => {
     const data = localStorage.getItem("limonero_cashbook");
-    if (!data) return alert("No hay movimientos en caja.");
+    if (!data) return toast.info("No hay movimientos en caja.");
 
     const cashbook = JSON.parse(data);
-    if (cashbook.length === 0) return alert("La caja está vacía.");
+    if (cashbook.length === 0) return toast.info("La caja está vacía.");
 
     const csv = convertToCSV(cashbook);
     downloadCSV(

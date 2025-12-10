@@ -1,1 +1,0 @@
-Chore: Release v1.2.0 - Dashboard, Presets y Exportación (Neutral Tone)

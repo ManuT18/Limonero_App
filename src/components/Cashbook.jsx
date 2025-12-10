@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import {
   ArrowUpCircle,
@@ -52,7 +53,11 @@ export function Cashbook() {
     }
 
     setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
+    setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
     setIsAdding(false);
+    toast.success(
+      editingId ? "Movimiento actualizado" : "Movimiento registrado"
+    );
   };
 
   const handleEdit = (mov) => {
@@ -68,6 +73,7 @@ export function Cashbook() {
   const handleDelete = (id) => {
     if (confirm("¿Estás seguro de eliminar este registro?")) {
       setMovements(movements.filter((m) => m.id !== id));
+      toast.error("Movimiento eliminado");
     }
   };
 

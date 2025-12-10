@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import {
   Settings,
@@ -181,12 +182,9 @@ export function Calculator() {
     setCashbook([newMovement, ...cashbook]);
 
     setShowPrintModal(false);
-    alert(
-      "¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja"
-    );
     setShowPrintModal(false);
-    alert(
-      "¡Registrado exitosamente!\n- Stock descontado\n- Ingreso agregado a caja"
+    toast.success(
+      "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
     );
   };
 
@@ -199,7 +197,9 @@ export function Calculator() {
     };
     setPresets([...presets, newPreset]);
     setPresetName("");
-    alert("Preset guardado correctamente.");
+    setPresets([...presets, newPreset]);
+    setPresetName("");
+    toast.success("Preset guardado correctamente");
   };
 
   const handleLoadPreset = (id) => {
@@ -213,6 +213,7 @@ export function Calculator() {
   const handleDeletePreset = (id) => {
     if (confirm("¿Eliminar este preset?")) {
       setPresets(presets.filter((p) => p.id !== id));
+      toast.info("Preset eliminado");
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import {
   Trash2,
@@ -88,12 +89,15 @@ export function Inventory() {
       ])
     );
     setNewItem({ tipo: "", marca: "", color: "", stock: "", precio: "" });
+
     setIsAdding(false);
+    toast.success("Material agregado exitosamente");
   };
 
   const handleDelete = (id) => {
     if (window.confirm("¿Estás seguro de que quieres eliminar este item?")) {
       setItems(items.filter((item) => item.id !== id));
+      toast.error("Material eliminado");
     }
   };
 
@@ -118,6 +122,7 @@ export function Inventory() {
     );
     setEditingId(null);
     setEditValues({});
+    toast.success("Material actualizado");
   };
 
   const handleCancelEdit = () => {
@@ -130,7 +135,9 @@ export function Inventory() {
       ...item,
       id: crypto.randomUUID(),
     };
+
     setItems(sortItems([...items, duplicatedItem]));
+    toast.info("Material duplicado");
   };
 
   const filteredItems = items.filter(
