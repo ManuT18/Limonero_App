@@ -13,6 +13,8 @@ import {
   Calculator as CalculatorIcon,
   Save,
   Trash2,
+  Pencil,
+  X,
 } from "lucide-react";
 
 export function Calculator() {
@@ -29,7 +31,9 @@ export function Calculator() {
   });
 
   const [presets, setPresets] = useLocalStorage("limonero_presets", []);
+
   const [presetName, setPresetName] = useState("");
+  const [editingPresetId, setEditingPresetId] = useState(null);
 
   // Datos de la Pieza
   const [inputs, setInputs] = useState({
@@ -190,16 +194,39 @@ export function Calculator() {
 
   const handleSavePreset = () => {
     if (!presetName.trim()) return;
-    const newPreset = {
-      id: crypto.randomUUID(),
-      name: presetName,
-      config: { ...config },
-    };
-    setPresets([...presets, newPreset]);
+
+    if (editingPresetId) {
+      // Update existing
+      const updatedPresets = presets.map((p) =>
+        p.id === editingPresetId
+          ? { ...p, name: presetName, config: { ...config } }
+          : p
+      );
+      setPresets(updatedPresets);
+      toast.success("Preset actualizado correctamente");
+    } else {
+      // Create new
+      const newPreset = {
+        id: crypto.randomUUID(),
+        name: presetName,
+        config: { ...config },
+      };
+      setPresets([...presets, newPreset]);
+      toast.success("Preset guardado correctamente");
+    }
     setPresetName("");
-    setPresets([...presets, newPreset]);
+    setEditingPresetId(null);
+  };
+
+  const handleEditPreset = (preset) => {
+    setEditingPresetId(preset.id);
+    setPresetName(preset.name);
+    setConfig(preset.config);
+  };
+
+  const handleCancelEditPreset = () => {
+    setEditingPresetId(null);
     setPresetName("");
-    toast.success("Preset guardado correctamente");
   };
 
   const handleLoadPreset = (id) => {
@@ -407,10 +434,25 @@ export function Calculator() {
                   <button
                     className="btn btn-primary"
                     onClick={handleSavePreset}
-                    title="Guardar Preset"
+                    title={
+                      editingPresetId ? "Actualizar Preset" : "Guardar Preset"
+                    }
                   >
-                    <Save size={18} />
+                    {editingPresetId ? (
+                      <RefreshCw size={18} />
+                    ) : (
+                      <Save size={18} />
+                    )}
                   </button>
+                  {editingPresetId && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleCancelEditPreset}
+                      title="Cancelar Edición"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
 
                 {presets.length > 0 && (
@@ -435,13 +477,25 @@ export function Calculator() {
                         }}
                       >
                         <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
-                        <button
-                          className="btn-icon"
-                          style={{ color: "var(--danger)" }}
-                          onClick={() => handleDeletePreset(p.id)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            className="btn-icon"
+                            style={{ color: "var(--text-secondary)" }}
+                            onClick={() => handleEditPreset(p)}
+                            title="Editar"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="btn-icon"
+                            style={{ color: "var(--danger)" }}
+                            onClick={() => handleDeletePreset(p.id)}
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
