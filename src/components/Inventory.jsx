@@ -1,6 +1,41 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { Trash2, Plus, Search, Package } from "lucide-react";
+import { Trash2, Plus, Search, Package, Pencil, Check, X } from "lucide-react";
+
+const getColor = (name) => {
+  if (!name) return "#E5E7EB"; // grays.200
+  const lower = name.toLowerCase().trim();
+  const map = {
+    // Básicos
+    rojo: "#EF4444", // red.500
+    azul: "#3B82F6", // blue.500
+    verde: "#22C55E", // green.500
+    amarillo: "#EAB308", // yellow.500
+    naranja: "#F97316", // orange.500
+    violeta: "#8B5CF6", // violet.500
+    rosa: "#EC4899", // pink.500
+    negro: "#1F2937", // gray.800
+    blanco: "#F9FAFB", // gray.50
+    gris: "#9CA3AF", // gray.400
+    marron: "#78350F", // amber.900
+
+    // Variantes
+    "verde claro": "#86EFAC",
+    "verde oscuro": "#14532D",
+    "azul claro": "#93C5FD",
+    "azul oscuro": "#1E3A8A",
+    celeste: "#0EA5E9",
+    turquesa: "#14B8A6",
+
+    // Materiales
+    dorado: "#CA8A04",
+    plateado: "#D1D5DB",
+    bronce: "#92400E",
+    transparente: "rgba(255, 255, 255, 0.5)",
+    natural: "#FDE68A",
+  };
+  return map[lower] || "#9CA3AF"; // Default gray
+};
 
 export function Inventory() {
   const [items, setItems] = useLocalStorage("limonero_inventory", []);
@@ -13,6 +48,8 @@ export function Inventory() {
   });
   const [isAdding, setIsAdding] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
 
   const handleAdd = () => {
     if (!newItem.tipo || !newItem.stock) return;
@@ -34,6 +71,32 @@ export function Inventory() {
     if (window.confirm("¿Estás seguro de que quieres eliminar este item?")) {
       setItems(items.filter((item) => item.id !== id));
     }
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setEditValues({ ...item });
+  };
+
+  const handleSaveEdit = () => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === editingId
+          ? {
+              ...editValues,
+              stock: parseFloat(editValues.stock) || 0,
+              precio: parseFloat(editValues.precio) || 0,
+            }
+          : item
+      )
+    );
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
   };
 
   const filteredItems = items.filter(
@@ -205,7 +268,7 @@ export function Inventory() {
             <thead>
               <tr>
                 <th>Material</th>
-                <th>Detalles</th>
+                <th>Color</th>
                 <th>Stock</th>
                 <th>Valor</th>
                 <th style={{ textAlign: "right" }}>Acciones</th>
@@ -228,59 +291,169 @@ export function Inventory() {
               ) : (
                 filteredItems.map((item) => (
                   <tr key={item.id}>
-                    <td>
-                      <span
-                        style={{ fontWeight: 600, color: "var(--text-main)" }}
-                      >
-                        {item.tipo}
-                      </span>
-                      <div
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        {item.marca}
-                      </div>
-                    </td>
-                    <td>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "50%",
-                            background: "gray" /* Podría ser dinámico */,
-                          }}
-                        ></div>
-                        {item.color}
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          item.stock < 200 ? "badge-danger" : "badge-success"
-                        }`}
-                      >
-                        {item.stock} gr
-                      </span>
-                    </td>
-                    <td>${item.precio}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button
-                        className="btn btn-ghost"
-                        style={{ color: "var(--danger)", padding: "0.5rem" }}
-                        onClick={() => handleDelete(item.id)}
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
+                    {editingId === item.id ? (
+                      <>
+                        {/* EDICION */}
+                        <td>
+                          <input
+                            className="input"
+                            value={editValues.tipo}
+                            onChange={(e) =>
+                              setEditValues({ ...editValues, tipo: e.target.value })
+                            }
+                            placeholder="Tipo"
+                            style={{ marginBottom: "0.25rem" }}
+                          />
+                          <input
+                            className="input"
+                            value={editValues.marca}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                marca: e.target.value,
+                              })
+                            }
+                            placeholder="Marca"
+                            style={{ fontSize: "0.85rem" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={editValues.color}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                color: e.target.value,
+                              })
+                            }
+                            placeholder="Color"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="number"
+                            value={editValues.stock}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                stock: e.target.value,
+                              })
+                            }
+                            placeholder="Stock"
+                            style={{ width: "80px" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="number"
+                            value={editValues.precio}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                precio: e.target.value,
+                              })
+                            }
+                            placeholder="Precio"
+                            style={{ width: "80px" }}
+                          />
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                             <button
+                              className="btn btn-primary"
+                              style={{ padding: "0.5rem" }}
+                              onClick={handleSaveEdit}
+                              title="Guardar"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: "0.5rem" }}
+                              onClick={handleCancelEdit}
+                              title="Cancelar"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        {/* VISTA NORMAL */}
+                        <td>
+                          <span
+                            style={{ fontWeight: 600, color: "var(--text-main)" }}
+                          >
+                            {item.tipo}
+                          </span>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            {item.marca}
+                          </div>
+                        </td>
+                        <td>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderRadius: "50%",
+                                background: getColor(item.color),
+                                border:
+                                  item.color?.toLowerCase() === "blanco"
+                                    ? "1px solid var(--border)"
+                                    : "none",
+                              }}
+                            ></div>
+                            {item.color}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              item.stock < 200 ? "badge-danger" : "badge-success"
+                            }`}
+                          >
+                            {item.stock} gr
+                          </span>
+                        </td>
+                        <td>${item.precio}</td>
+                        <td style={{ textAlign: "right" }}>
+                           <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                            <button
+                              className="btn btn-ghost"
+                              style={{ padding: "0.5rem" }}
+                              onClick={() => handleEdit(item)}
+                              title="Editar"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button
+                              className="btn btn-ghost"
+                              style={{ color: "var(--danger)", padding: "0.5rem" }}
+                              onClick={() => handleDelete(item.id)}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}
