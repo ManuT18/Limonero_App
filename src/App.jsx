@@ -18,6 +18,7 @@ function App() {
         position="bottom-right"
         theme="colored"
         autoClose={1000}
+        hideProgressBar={true}
       />
       <div
         style={{
