@@ -12,14 +12,20 @@ Una aplicación web moderna y eficiente para la gestión de emprendimientos de I
 
 - **Cálculo Preciso**: Estima el costo real de tus impresiones basándose en material, energía, desgaste de máquina y horas de trabajo.
 - **Configuración Persistente**: Guarda tus valores de costos fijos (precio del kWh, filamento, etc.) para no ingresarlos cada vez.
+- **Gestión Avanzada de Presets**:
+  - **Guardar**: Crea perfiles para distintos materiales.
+  - **Editar**: Modifica valores existentes fácilmente.
+  - **Reordenar**: Organiza tus presets favoritos arrastrando y soltando (Drag & Drop).
 - **Multiplicador Editable**: Ajusta tu ganancia deseada al vuelo con un campo siempre visible.
 - **Precio Sugerido**: Obtén una recomendación de venta clara con desglose de ganancia neta.
 
 ### 📦 Gestión de Inventario
 
 - **Control de Stock**: Registra tus rollos de filamento por marca, tipo y color.
+- **Edición en Línea**: Modifica stock, precios o detalles directamente desde la tabla, sin abrir menús extra.
+- **Acciones Rápidas**: Duplica items para cargas masivas y elimina con seguridad.
+- **Ordenamiento Inteligente**: Tu inventario se mantiene organizado automáticamente (Tipo > Marca > Color).
 - **Alertas Visuales**: Indicadores automáticos cuando el stock es bajo (< 200g).
-- **Seguridad**: Confirmación pop-up anties de eliminar cualquier item para evitar accidentes.
 
 ### 📒 Libro de Caja
 
@@ -31,6 +37,14 @@ Una aplicación web moderna y eficiente para la gestión de emprendimientos de I
 - **Importar/Exportar**: Descarga toda tu base de datos en un archivo JSON seguro.
 - **Restauración Fácil**: Recupera tu información en segundos cargando tu archivo de backup.
 - **Privacidad**: Todos los datos se guardan localmente en tu navegador (`localStorage`), nada sube a servidores externos.
+
+### 🔔 Notificaciones Inteligentes
+
+El sistema cuenta con alertas modernas (Toasts) que te informan del estado de tus acciones:
+
+- ✅ **Confirmaciones**: Al guardar o editar con éxito.
+- ℹ️ **Información**: Detalles sobre duplicados o exportaciones.
+- 🗑️ **Seguridad**: Confirmación interactiva antes de eliminar datos importantes.
 
 ## 🚀 Uso e Instalación
 
