@@ -1,6 +1,15 @@
 import React, { useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { Trash2, Plus, Search, Package, Pencil, Check, X } from "lucide-react";
+import {
+  Trash2,
+  Plus,
+  Search,
+  Package,
+  Pencil,
+  Check,
+  X,
+  Copy,
+} from "lucide-react";
 
 const getColor = (name) => {
   if (!name) return "#E5E7EB"; // grays.200
@@ -97,6 +106,14 @@ export function Inventory() {
   const handleCancelEdit = () => {
     setEditingId(null);
     setEditValues({});
+  };
+
+  const handleDuplicate = (item) => {
+    const duplicatedItem = {
+      ...item,
+      id: crypto.randomUUID(),
+    };
+    setItems([...items, duplicatedItem]);
   };
 
   const filteredItems = items.filter(
@@ -299,7 +316,10 @@ export function Inventory() {
                             className="input"
                             value={editValues.tipo}
                             onChange={(e) =>
-                              setEditValues({ ...editValues, tipo: e.target.value })
+                              setEditValues({
+                                ...editValues,
+                                tipo: e.target.value,
+                              })
                             }
                             placeholder="Tipo"
                             style={{ marginBottom: "0.25rem" }}
@@ -361,8 +381,14 @@ export function Inventory() {
                           />
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-                             <button
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <button
                               className="btn btn-primary"
                               style={{ padding: "0.5rem" }}
                               onClick={handleSaveEdit}
@@ -386,7 +412,10 @@ export function Inventory() {
                         {/* VISTA NORMAL */}
                         <td>
                           <span
-                            style={{ fontWeight: 600, color: "var(--text-main)" }}
+                            style={{
+                              fontWeight: 600,
+                              color: "var(--text-main)",
+                            }}
                           >
                             {item.tipo}
                           </span>
@@ -425,7 +454,9 @@ export function Inventory() {
                         <td>
                           <span
                             className={`badge ${
-                              item.stock < 200 ? "badge-danger" : "badge-success"
+                              item.stock < 200
+                                ? "badge-danger"
+                                : "badge-success"
                             }`}
                           >
                             {item.stock} gr
@@ -433,7 +464,13 @@ export function Inventory() {
                         </td>
                         <td>${item.precio}</td>
                         <td style={{ textAlign: "right" }}>
-                           <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: "0.5rem",
+                            }}
+                          >
                             <button
                               className="btn btn-ghost"
                               style={{ padding: "0.5rem" }}
@@ -444,7 +481,18 @@ export function Inventory() {
                             </button>
                             <button
                               className="btn btn-ghost"
-                              style={{ color: "var(--danger)", padding: "0.5rem" }}
+                              style={{ padding: "0.5rem" }}
+                              onClick={() => handleDuplicate(item)}
+                              title="Duplicar"
+                            >
+                              <Copy size={18} />
+                            </button>
+                            <button
+                              className="btn btn-ghost"
+                              style={{
+                                color: "var(--danger)",
+                                padding: "0.5rem",
+                              }}
                               onClick={() => handleDelete(item.id)}
                               title="Eliminar"
                             >
