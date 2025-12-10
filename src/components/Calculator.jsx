@@ -15,6 +15,7 @@ import {
   Trash2,
   Pencil,
   X,
+  GripVertical,
 } from "lucide-react";
 
 export function Calculator() {
@@ -227,6 +228,26 @@ export function Calculator() {
   const handleCancelEditPreset = () => {
     setEditingPresetId(null);
     setPresetName("");
+  };
+
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData("dragIndex", index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    const dragIndex = Number(e.dataTransfer.getData("dragIndex"));
+    if (dragIndex === dropIndex) return;
+
+    const newPresets = [...presets];
+    const [draggedItem] = newPresets.splice(dragIndex, 1);
+    newPresets.splice(dropIndex, 0, draggedItem);
+
+    setPresets(newPresets);
   };
 
   const handleLoadPreset = (id) => {
@@ -464,9 +485,13 @@ export function Calculator() {
                     }}
                   >
                     <label className="label">Presets Guardados:</label>
-                    {presets.map((p) => (
+                    {presets.map((p, index) => (
                       <div
                         key={p.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, index)}
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
@@ -474,10 +499,35 @@ export function Calculator() {
                           background: "var(--background)",
                           padding: "0.5rem",
                           borderRadius: "var(--radius)",
+                          cursor: "move",
+                          border: "1px solid transparent",
+                        }}
+                        onDragEnter={(e) => {
+                          e.currentTarget.style.border =
+                            "1px dashed var(--primary)";
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.style.border =
+                            "1px solid transparent";
                         }}
                       >
-                        <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
-                        <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <GripVertical
+                            size={16}
+                            style={{
+                              color: "var(--text-secondary)",
+                              cursor: "grab",
+                            }}
+                          />
+                          <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
+                        </div>
+
                         <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button
                             className="btn-icon"
