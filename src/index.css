@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Reset Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 :root {
   /* Default (Light) Palette */
   --primary: #6366f1; /* Indigo 500 */
