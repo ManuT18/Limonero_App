@@ -1,0 +1,56 @@
+/* Compact styles for Calculator inputs */
+
+.input-card-compact {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-hover);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent; /* Prepare for focus state */
+  transition: all 0.2s ease;
+}
+
+.input-card-compact:hover {
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.input-card-compact:focus-within {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.label-compact {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+}
+
+.input-compact-transparent {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  outline: none;
+}
+
+/* Chrome, Safari, Edge, Opera */
+.input-compact-transparent::-webkit-outer-spin-button,
+.input-compact-transparent::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.input-compact-transparent[type=number] {
+  -moz-appearance: textfield;
+}

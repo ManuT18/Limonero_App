@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import "./CalculatorCompact.css"; // We will create this file
 import {
   Settings,
   RefreshCw,
@@ -16,7 +17,52 @@ import {
   Pencil,
   X,
   GripVertical,
+  Eraser,
+  User,
+  FileText,
 } from "lucide-react";
+
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div
+      style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}
+    >
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+);
 
 export function Calculator() {
   // Configuración Global (Gastos Fijos)
@@ -35,6 +81,8 @@ export function Calculator() {
 
   const [presetName, setPresetName] = useState("");
   const [editingPresetId, setEditingPresetId] = useState(null);
+  const [showPresetsManager, setShowPresetsManager] = useState(false);
+  const [selectedMaterialId, setSelectedMaterialId] = useState("");
 
   // Datos de la Pieza
   const [inputs, setInputs] = useState({
@@ -45,7 +93,6 @@ export function Calculator() {
   });
 
   const [result, setResult] = useState(null);
-  const [showConfig, setShowConfig] = useState(false);
 
   const handleCalculate = () => {
     // 1. Normalizar inputs
@@ -123,8 +170,10 @@ export function Calculator() {
   const handleOpenPrint = () => {
     if (!result) return;
     setPrintConfig({
-      materialId: "",
+      materialId: selectedMaterialId || "",
       adjustedPrice: result.precio_venta,
+      clientName: "",
+      description: "",
     });
     setShowPrintModal(true);
   };
@@ -152,45 +201,87 @@ export function Calculator() {
 
   const handleConfirmPrint = () => {
     if (!printConfig.materialId) {
-      alert("Por favor selecciona un material del inventario.");
+      toast.error("Por favor selecciona un material del inventario.");
       return;
     }
     const material = inventory.find((i) => i.id === printConfig.materialId);
     if (!material) return;
 
     const pesoNecesario = parseFloat(inputs.peso) || 0;
+
+    const executePrint = () => {
+      const newInventory = inventory.map((item) => {
+        if (item.id === printConfig.materialId) {
+          return { ...item, stock: item.stock - pesoNecesario };
+        }
+        return item;
+      });
+      setInventory(newInventory);
+
+      const desc = printConfig.description
+        ? `${printConfig.description} - ${inputs.peso}g ${material.tipo} ${material.color}`
+        : `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`;
+
+      const newMovement = {
+        id: crypto.randomUUID(),
+        fecha: `${new Date().toLocaleDateString("es-AR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })} - ${new Date().toLocaleTimeString("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}`,
+        tipo: "INGRESO",
+        monto: printConfig.adjustedPrice,
+        descripcion: desc,
+        nombre: printConfig.clientName || "",
+        stockRestoration: {
+          materialId: material.id,
+          quantity: pesoNecesario,
+        },
+      };
+      setCashbook([newMovement, ...cashbook]);
+
+      setShowPrintModal(false);
+      toast.dismiss();
+      setTimeout(
+        () =>
+          toast.success(
+            "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
+          ),
+        100
+      );
+      // Reset Data
+      setInputs({
+        tiempo_horas: "",
+        tiempo_minutos: "",
+        peso: "",
+        costo_insumos: 0,
+      });
+      setResult(null);
+    };
+
     if (material.stock < pesoNecesario) {
-      if (
-        !confirm(
-          `El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`
-        )
-      ) {
-        return;
-      }
+      toast.error(
+        ({ closeToast }) => (
+          <ConfirmToast
+            message={`El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`}
+            closeToast={closeToast}
+            onConfirm={executePrint}
+          />
+        ),
+        {
+          autoClose: false,
+          closeOnClick: false,
+          icon: false,
+        }
+      );
+      return;
     }
 
-    const newInventory = inventory.map((item) => {
-      if (item.id === printConfig.materialId) {
-        return { ...item, stock: item.stock - pesoNecesario };
-      }
-      return item;
-    });
-    setInventory(newInventory);
-
-    const newMovement = {
-      id: crypto.randomUUID(),
-      fecha: new Date().toLocaleString(),
-      tipo: "INGRESO",
-      monto: printConfig.adjustedPrice,
-      descripcion: `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`,
-    };
-    setCashbook([newMovement, ...cashbook]);
-
-    setShowPrintModal(false);
-    setShowPrintModal(false);
-    toast.success(
-      "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
-    );
+    executePrint();
   };
 
   const handleSavePreset = () => {
@@ -230,6 +321,16 @@ export function Calculator() {
     setPresetName("");
   };
 
+  const handleResetInputs = () => {
+    setInputs({
+      tiempo_horas: "",
+      tiempo_minutos: "",
+      peso: "",
+      costo_insumos: 0,
+    });
+    setResult(null);
+  };
+
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData("dragIndex", index);
     e.dataTransfer.effectAllowed = "move";
@@ -259,10 +360,24 @@ export function Calculator() {
   };
 
   const handleDeletePreset = (id) => {
-    if (confirm("¿Eliminar este preset?")) {
-      setPresets(presets.filter((p) => p.id !== id));
-      toast.info("Preset eliminado");
-    }
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          message="¿Eliminar este preset?"
+          closeToast={closeToast}
+          onConfirm={() => {
+            setPresets(presets.filter((p) => p.id !== id));
+            toast.dismiss();
+            setTimeout(() => toast.info("Preset eliminado"), 100);
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
   };
 
   return (
@@ -424,14 +539,15 @@ export function Calculator() {
               </span>
               <button
                 className="btn btn-ghost"
-                onClick={() => setShowConfig(!showConfig)}
+                onClick={() => setShowPresetsManager(!showPresetsManager)}
                 style={{ fontSize: "0.875rem" }}
               >
-                {showConfig ? "Ocultar" : "Editar"}
+                {showPresetsManager ? "Ocultar Presets" : "Editar Presets"}
               </button>
             </div>
 
-            {showConfig ? (
+            {/* PRESET MANAGER */}
+            {showPresetsManager && (
               <div
                 style={{
                   marginBottom: "1.5rem",
@@ -551,7 +667,10 @@ export function Calculator() {
                   </div>
                 )}
               </div>
-            ) : (
+            )}
+
+            {/* PRESET LOADER (Always Visible if not managing) */}
+            {!showPresetsManager && (
               <div style={{ marginBottom: "1rem" }}>
                 <select
                   className="input"
@@ -575,276 +694,215 @@ export function Calculator() {
               </div>
             )}
 
-            {showConfig ? (
+            {/* ALWAYS EDITABLE CONFIG GRID */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: "0.5rem",
+              }}
+            >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "1rem",
-                }}
-              >
-                <div className="input-group">
-                  <label className="label">Precio Filamento ($/KG)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={config.precio_filamento}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        precio_filamento: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Precio Energía ($/kWh)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={config.precio_kwh}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        precio_kwh: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Consumo Máquina (Watts)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={config.consumo_watts}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        consumo_watts: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Desgaste ($/Hora)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={config.desgaste_hora}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        desgaste_hora: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Margen Error (%)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={config.margen_error}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        margen_error: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label className="label">Multiplicador Ganancia</label>
-                  <input
-                    type="number"
-                    className="input"
-                    step="0.5"
-                    value={config.multiplicador_ganancia}
-                    onChange={(e) =>
-                      setConfig({
-                        ...config,
-                        multiplicador_ganancia: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-                  gap: "0.75rem",
+                  gridColumn: "1 / -1",
+                  background: "var(--surface-hover)",
+                  padding: "0.75rem",
+                  borderRadius: "var(--radius)",
                 }}
               >
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Filamento
-                  </span>
-                  <span style={{ fontWeight: 600 }}>
-                    ${config.precio_filamento}/kg
-                  </span>
+                  <label className="label" style={{ margin: 0 }}>
+                    Filamento / Material
+                  </label>
                 </div>
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.5rem",
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
+                  <select
+                    className="input"
+                    value={selectedMaterialId}
+                    style={{ fontSize: "0.9rem", padding: "0.35rem" }}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedMaterialId(id);
+                      if (id) {
+                        // Find price in inventory
+                        const mat = inventory.find((i) => i.id === id);
+                        if (mat) {
+                          setConfig({
+                            ...config,
+                            precio_filamento: mat.precio,
+                          });
+                        }
+                      }
                     }}
                   >
-                    Energía
-                  </span>
-                  <span style={{ fontWeight: 600 }}>
-                    ${config.precio_kwh}/kWh
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Consumo
-                  </span>
-                  <span style={{ fontWeight: 600 }}>
-                    {config.consumo_watts}W
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Desgaste
-                  </span>
-                  <span style={{ fontWeight: 600 }}>
-                    ${config.desgaste_hora}/h
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Margen Error
-                  </span>
-                  <span style={{ fontWeight: 600 }}>
-                    {config.margen_error}%
-                  </span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "var(--background)",
-                    padding: "0.5rem",
-                    borderRadius: "0.5rem",
-                    border: "1px solid var(--primary)",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "0.7rem",
-                      color: "var(--text-secondary)",
-                      marginBottom: "0.2rem",
-                    }}
-                  >
-                    Multiplicador
-                  </span>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "2px",
-                    }}
-                  >
+                    <option value="">-- Personalizado --</option>
+                    {inventory.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.tipo} {i.marca} ({i.color}) - {i.stock}g
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ position: "relative" }}>
                     <span
-                      style={{ color: "var(--primary)", fontWeight: "bold" }}
+                      style={{
+                        position: "absolute",
+                        left: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.8rem",
+                        pointerEvents: "none",
+                      }}
                     >
-                      x
+                      $
                     </span>
                     <input
                       type="number"
-                      step="1"
-                      value={config.multiplicador_ganancia}
-                      onChange={(e) =>
+                      className="input"
+                      style={{
+                        paddingLeft: "1.5rem",
+                        paddingRight: "2rem",
+                        fontSize: "0.9rem",
+                        paddingBlock: "0.35rem",
+                      }}
+                      value={config.precio_filamento}
+                      onChange={(e) => {
                         setConfig({
                           ...config,
-                          multiplicador_ganancia: parseFloat(e.target.value),
-                        })
-                      }
-                      style={{
-                        width: "100%",
-                        border: "none",
-                        background: "transparent",
-                        fontWeight: 600,
-                        color: "var(--primary)",
-                        padding: 0,
-                        margin: 0,
-                        fontSize: "1rem",
-                        outline: "none",
+                          precio_filamento: parseFloat(e.target.value),
+                        });
+                        setSelectedMaterialId(""); // Clear selection on manual edit
                       }}
                     />
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.7rem",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      /kg
+                    </span>
                   </div>
                 </div>
               </div>
-            )}
+
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <Zap size={14} /> Energía ($/kWh)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.precio_kwh}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      precio_kwh: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <DollarSign size={14} /> Consumo (W)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.consumo_watts}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      consumo_watts: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <AlertCircle size={14} /> Desgaste ($/h)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.desgaste_hora}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      desgaste_hora: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <Scale size={14} /> Margen Error (%)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.margen_error}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      margen_error: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">Multiplicador (x)</span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  step="0.1"
+                  value={config.multiplicador_ganancia}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      multiplicador_ganancia: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
           </div>
 
           {/* Tarjeta de Pieza (Inputs Principales) */}
           <div className="card">
-            <div className="section-title">
-              <RefreshCw size={20} /> Datos de la Pieza
+            <div
+              className="section-title"
+              style={{ justifyContent: "space-between" }}
+            >
+              <span>
+                <RefreshCw size={20} /> Datos de la Pieza
+              </span>
+              <button
+                className="btn btn-ghost"
+                onClick={handleResetInputs}
+                title="Limpiar datos"
+                style={{ color: "var(--danger)" }}
+              >
+                <Eraser size={18} />
+              </button>
             </div>
 
             <div className="input-group">
@@ -936,21 +994,32 @@ export function Calculator() {
         </div>
 
         {/* Columna Derecha: Resultados */}
-        <div>
+        <div style={{ height: "100%" }}>
           {result && (
-            <div className="card card-result">
+            <div
+              className="card card-result"
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "1rem",
+              }}
+            >
+              {/* 1. TITLE */}
               <div
                 className="section-title"
-                style={{ color: "var(--primary)" }}
+                style={{ color: "var(--primary)", marginBottom: 0 }}
               >
                 Resumen de Costos
               </div>
 
+              {/* 2. COST BREAKDOWN */}
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "1rem",
+                  gap: "1.25rem",
                 }}
               >
                 <ResultRow
@@ -984,7 +1053,7 @@ export function Calculator() {
                   style={{
                     height: "1px",
                     background: "var(--border)",
-                    margin: "1rem 0",
+                    margin: "0.5rem 0",
                   }}
                 ></div>
 
@@ -996,7 +1065,10 @@ export function Calculator() {
                   }}
                 >
                   <span
-                    style={{ fontWeight: 600, color: "var(--text-secondary)" }}
+                    style={{
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
                   >
                     Costo Total Real
                   </span>
@@ -1004,59 +1076,61 @@ export function Calculator() {
                     ${result.costo_total.toFixed(2)}
                   </span>
                 </div>
-
-                <div className="price-card">
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "0.5rem",
-                    }}
-                  >
-                    <span style={{ opacity: 0.9 }}>Precio Sugerido</span>
-                    <span className="price-badge">
-                      x{config.multiplicador_ganancia}
-                    </span>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "2.5rem",
-                      fontWeight: 800,
-                      lineHeight: 1,
-                    }}
-                  >
-                    ${result.precio_venta.toFixed(2)}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: "0.5rem",
-                      opacity: 0.9,
-                      fontSize: "0.875rem",
-                    }}
-                  >
-                    Ganancia Neta: ${result.ganancia_neta.toFixed(2)}
-                  </div>
-                </div>
-                <button
-                  style={{
-                    background:
-                      "linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%)",
-                    borderRadius: "var(--radius)",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "1rem",
-                    fontSize: "1.75rem",
-                    fontWeight: 600,
-                    color: "white",
-                    marginTop: "1rem",
-                    boxShadow: "0 10px 15px -3px rgba(70, 229, 123, 0.3)",
-                    width: "100%",
-                  }}
-                  onClick={handleOpenPrint}
-                >
-                  Imprimir
-                </button>
               </div>
+
+              {/* 3. PRICE CARD */}
+              <div className="price-card">
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <span style={{ opacity: 0.9 }}>Precio Sugerido</span>
+                  <span className="price-badge">
+                    x{config.multiplicador_ganancia}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "2.5rem",
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  ${result.precio_venta.toFixed(2)}
+                </div>
+                <div
+                  style={{
+                    marginTop: "0.5rem",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Ganancia Neta: ${result.ganancia_neta.toFixed(2)}
+                </div>
+              </div>
+
+              {/* 4. ACTION BUTTON */}
+              <button
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%)",
+                  borderRadius: "var(--radius)",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "1rem",
+                  fontSize: "1.75rem",
+                  fontWeight: 600,
+                  color: "white",
+                  boxShadow: "0 10px 15px -3px rgba(70, 229, 123, 0.3)",
+                  width: "100%",
+                }}
+                onClick={handleOpenPrint}
+              >
+                Imprimir
+              </button>
             </div>
           )}
           {!result && (
@@ -1067,7 +1141,7 @@ export function Calculator() {
                 alignItems: "center",
                 justifyContent: "center",
                 height: "100%",
-                minHeight: "300px",
+                padding: "3rem 1rem",
                 color: "var(--text-light)",
                 flexDirection: "column",
                 gap: "1rem",
@@ -1079,6 +1153,175 @@ export function Calculator() {
           )}
         </div>
       </div>
+
+      {/* PRINT CONFIRMATION MODAL */}
+      {showPrintModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPrintModal(false);
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              padding: "1.5rem",
+              background: "var(--background)",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              border: "1px solid var(--border)",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <Save size={20} className="text-primary" />
+              Confirmar Venta
+            </h3>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              {/* Client Name Input */}
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">
+                  <User size={14} style={{ marginRight: "4px" }} />
+                  Nombre del Cliente
+                </label>
+                <input
+                  className="input"
+                  placeholder="Opcional (Ej: Juan Perez)"
+                  value={printConfig.clientName || ""}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      clientName: e.target.value,
+                    })
+                  }
+                  autoFocus
+                />
+              </div>
+
+              {/* Description Input */}
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">
+                  <FileText size={14} style={{ marginRight: "4px" }} />
+                  Descripción Extra
+                </label>
+                <input
+                  className="input"
+                  placeholder="Ej: Pieza decorativa"
+                  value={printConfig.description || ""}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      description: e.target.value,
+                    })
+                  }
+                />
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-secondary)",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  Se guardará como:{" "}
+                  {printConfig.description
+                    ? `${printConfig.description} - ...`
+                    : "Impresión: ..."}
+                </span>
+              </div>
+
+              {/* Price Preview */}
+              <div
+                style={{
+                  background: "var(--surface)",
+                  padding: "1rem",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.9rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <span>Precio Base:</span>
+                  <span>${printConfig.adjustedPrice.toFixed(2)}</span>
+                </div>
+                {/* Smart Rounding Controls could go here if needed, but keeping simple */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: "0.5rem",
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>Precio Final:</span>
+                  <span
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: 800,
+                      color: "var(--success)",
+                    }}
+                  >
+                    ${printConfig.adjustedPrice.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "1rem",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowPrintModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmPrint}>
+                Confirmar e Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
