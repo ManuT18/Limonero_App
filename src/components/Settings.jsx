@@ -8,6 +8,46 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+);
+
 export function Settings() {
   const fileInputRef = useRef(null);
 
@@ -59,11 +99,7 @@ export function Settings() {
           return;
         }
 
-        if (
-          confirm(
-            "¿Estás seguro? Esto SOBRESCRIBIRÁ todos los datos actuales con los del archivo."
-          )
-        ) {
+        const proceedImport = () => {
           if (json.inventory)
             localStorage.setItem(
               "limonero_inventory",
@@ -74,13 +110,41 @@ export function Settings() {
               "limonero_cashbook",
               JSON.stringify(json.cashbook)
             );
+          if (json.config)
+            localStorage.setItem(
+              "limonero_config_v3",
+              JSON.stringify(json.config)
+            );
+          if (json.presets)
+            localStorage.setItem(
+              "limonero_presets",
+              JSON.stringify(json.presets)
+            );
 
-          toast.success("¡Datos importados! Recargando...");
-          setTimeout(() => window.location.reload(), 1500);
-        }
+          toast.success("Backup restaurado correctamente. Recargando...");
+
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        };
+
+        toast.error(
+          ({ closeToast }) => (
+            <ConfirmToast
+              message="¿Estás seguro? Esto SOBRESCRIBIRÁ todos los datos actuales con los del archivo."
+              closeToast={closeToast}
+              onConfirm={proceedImport}
+            />
+          ),
+          {
+            autoClose: false,
+            closeOnClick: false,
+            icon: false,
+          }
+        );
       } catch (error) {
         console.error(error);
-        toast.error("Error al leer archivo. Verifica que sea un JSON válido.");
+        toast.error("Error al leer el archivo de backup");
       }
     };
     reader.readAsText(file);
