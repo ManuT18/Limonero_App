@@ -12,12 +12,54 @@ import {
   Pencil,
 } from "lucide-react";
 
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+);
+
 export function Cashbook() {
   const [movements, setMovements] = useLocalStorage("limonero_cashbook", []);
+  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
   const [newMovement, setNewMovement] = useState({
     tipo: "INGRESO",
     monto: "",
     descripcion: "",
+    nombre: "",
   });
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -45,14 +87,21 @@ export function Cashbook() {
         {
           ...newMovement,
           id: crypto.randomUUID(),
-          fecha: new Date().toLocaleString(),
+          fecha: `${new Date().toLocaleDateString("es-AR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })} - ${new Date().toLocaleTimeString("es-AR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })}`,
           monto: parseFloat(newMovement.monto),
         },
         ...movements,
       ]);
     }
 
-    setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
     setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
     setIsAdding(false);
     toast.success(
@@ -65,16 +114,51 @@ export function Cashbook() {
       tipo: mov.tipo,
       monto: mov.monto,
       descripcion: mov.descripcion,
+      nombre: mov.nombre || "",
     });
     setEditingId(mov.id);
     setIsAdding(true);
   };
 
   const handleDelete = (id) => {
-    if (confirm("¿Estás seguro de eliminar este registro?")) {
-      setMovements(movements.filter((m) => m.id !== id));
-      toast.error("Movimiento eliminado");
-    }
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          message="¿Estás seguro de eliminar este registro?"
+          closeToast={closeToast}
+          onConfirm={() => {
+            const mov = movements.find((m) => m.id === id);
+
+            // Stock Restoration Logic
+            if (mov && mov.stockRestoration) {
+              const { materialId, quantity } = mov.stockRestoration;
+              const materialIndex = inventory.findIndex(
+                (i) => i.id === materialId
+              );
+
+              if (materialIndex !== -1) {
+                const newInventory = [...inventory];
+                newInventory[materialIndex] = {
+                  ...newInventory[materialIndex],
+                  stock: newInventory[materialIndex].stock + quantity,
+                };
+                setInventory(newInventory);
+                toast.info(`Stock restaurado: +${quantity}g al inventario`);
+              }
+            }
+
+            setMovements(movements.filter((m) => m.id !== id));
+            toast.dismiss();
+            setTimeout(() => toast.error("Movimiento eliminado"), 100);
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
   };
 
   const handleCancel = () => {
