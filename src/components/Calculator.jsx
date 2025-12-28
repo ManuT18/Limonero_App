@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { useLocalStorage } from "../hooks/useLocalStorage";
-import "./CalculatorCompact.css"; // We will create this file
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
+import "./CalculatorCompact.css";
 import {
   Settings,
   RefreshCw,
@@ -20,14 +21,13 @@ import {
   Eraser,
   User,
   FileText,
+  Loader2,
 } from "lucide-react";
 
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   <div>
     <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
-    <div
-      style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}
-    >
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
       <button
         onClick={closeToast}
         style={{
@@ -64,66 +64,105 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   </div>
 );
 
-export function Calculator() {
-  // Configuración Global (Gastos Fijos)
-  // v3: Cambiado margen_ganancia (%) a multiplicador_ganancia (x)
-  const [config, setConfig] = useLocalStorage("limonero_config_v3", {
-    precio_filamento: 25000, // Precio por KG
-    precio_kwh: 150.0,
-    consumo_watts: 150, // Consumo promedio impresora
-    desgaste_hora: 50.0, // Depreciación/Mantenimiento
-    precio_repuestos: 0, // Extra repuestos (opcional)
-    margen_error: 5.0, // % de error (fallos)
-    multiplicador_ganancia: 2.0, // Multiplicador (ej: 2.0 = x2)
-  });
+const DEFAULT_CONFIG = {
+  precio_filamento: 25000,
+  precio_kwh: 150.0,
+  consumo_watts: 150,
+  desgaste_hora: 50.0,
+  precio_repuestos: 0,
+  margen_error: 5.0,
+  multiplicador_ganancia: 2.0,
+};
 
-  const [presets, setPresets] = useLocalStorage("limonero_presets", []);
+export function Calculator() {
+  const { user } = useAuth();
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [presets, setPresets] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [presetName, setPresetName] = useState("");
   const [editingPresetId, setEditingPresetId] = useState(null);
   const [showPresetsManager, setShowPresetsManager] = useState(false);
   const [selectedMaterialId, setSelectedMaterialId] = useState("");
 
-  // Datos de la Pieza
   const [inputs, setInputs] = useState({
     tiempo_horas: "",
     tiempo_minutos: "",
-    peso: "", // gramos
-    costo_insumos: 0, // tornillos, imanes, etc.
+    peso: "",
+    costo_insumos: 0,
   });
 
   const [result, setResult] = useState(null);
 
+  // Load Data
+  useEffect(() => {
+    Promise.all([fetchConfig(), fetchPresets(), fetchInventory()]).finally(() =>
+      setLoading(false)
+    );
+  }, []);
+
+  const fetchConfig = async () => {
+    const { data } = await supabase
+      .from("user_config")
+      .select("config")
+      .eq("user_id", user.id)
+      .single();
+    if (data && data.config) {
+      setConfig({ ...DEFAULT_CONFIG, ...data.config });
+    }
+  };
+
+  const fetchPresets = async () => {
+    const { data } = await supabase
+      .from("presets")
+      .select("*")
+      .order("created_at", { ascending: true });
+    if (data) setPresets(data);
+  };
+
+  const fetchInventory = async () => {
+    const { data } = await supabase.from("inventory").select("*").order("tipo");
+    if (data) setInventory(data);
+  };
+
+  // Debounced Config Save
+  const configTimeoutRef = useRef(null);
+  useEffect(() => {
+    if (loading) return;
+
+    if (configTimeoutRef.current) clearTimeout(configTimeoutRef.current);
+
+    configTimeoutRef.current = setTimeout(async () => {
+      const { error } = await supabase
+        .from("user_config")
+        .upsert(
+          { user_id: user.id, config: config },
+          { onConflict: "user_id" }
+        );
+      if (error) console.error("Error saving config:", error);
+    }, 1000); // 1s debounce
+
+    return () => clearTimeout(configTimeoutRef.current);
+  }, [config, loading, user.id]);
+
   const handleCalculate = () => {
-    // 1. Normalizar inputs
     const t_horas = parseInt(inputs.tiempo_horas) || 0;
     const t_minutos = parseInt(inputs.tiempo_minutos) || 0;
     const tiempo_total_horas = t_horas + t_minutos / 60;
-
     const peso_gr = parseFloat(inputs.peso) || 0;
     const insumos = parseFloat(inputs.costo_insumos) || 0;
 
-    // 2. Cálculos Base
-    // Material: (Precio KG / 1000) * Peso
     const costo_material = (config.precio_filamento / 1000) * peso_gr;
-
-    // Energía: (Watts / 1000) * Horas * Precio kWh
     const consumo_kwh = (config.consumo_watts / 1000) * tiempo_total_horas;
     const costo_energia = consumo_kwh * config.precio_kwh;
-
-    // Desgaste: Horas * Precio Hora
     const costo_desgaste = tiempo_total_horas * config.desgaste_hora;
 
-    // 3. Subtotal y Margen de Error
     const subtotal_costos =
       costo_material + costo_energia + costo_desgaste + insumos;
     const costo_error = subtotal_costos * (config.margen_error / 100);
-
-    // 4. Costo Total Real
     const costo_total = subtotal_costos + costo_error;
 
-    // 5. Precio de Venta
-    // Precio = Costo * Multiplicador
     const precio_venta = costo_total * config.multiplicador_ganancia;
     const ganancia_neta = precio_venta - costo_total;
 
@@ -139,25 +178,21 @@ export function Calculator() {
     });
   };
 
-  // Auto-calcular cuando cambian inputs (opcional, pero moderno)
   useEffect(() => {
     if (inputs.peso || inputs.tiempo_horas) {
       handleCalculate();
     }
   }, [inputs, config]);
 
-  // Estados para datos externos (Inventario y Caja)
-  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
-  const [cashbook, setCashbook] = useLocalStorage("limonero_cashbook", []);
-
-  // Estado para el Modal de Impresión
+  // --- Print Modal Logic ---
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printConfig, setPrintConfig] = useState({
     materialId: "",
     adjustedPrice: 0,
+    clientName: "",
+    description: "",
   });
 
-  // Efecto para inicializar el precio ajustable cuando hay resultados
   useEffect(() => {
     if (result) {
       setPrintConfig((prev) => ({
@@ -174,6 +209,7 @@ export function Calculator() {
       adjustedPrice: result.precio_venta,
       clientName: "",
       description: "",
+      adjustedPrice: result.precio_venta,
     });
     setShowPrintModal(true);
   };
@@ -184,83 +220,94 @@ export function Calculator() {
     let next;
 
     if (direction === "up") {
-      if (current % step === 0) {
-        next = current + step;
-      } else {
-        next = Math.ceil(current / step) * step;
-      }
+      next =
+        current % step === 0
+          ? current + step
+          : Math.ceil(current / step) * step;
     } else {
-      if (current % step === 0) {
-        next = current - step;
-      } else {
-        next = Math.floor(current / step) * step;
-      }
+      next =
+        current % step === 0
+          ? current - step
+          : Math.floor(current / step) * step;
     }
     setPrintConfig((prev) => ({ ...prev, adjustedPrice: Math.max(0, next) }));
   };
 
-  const handleConfirmPrint = () => {
+  const handleConfirmPrint = async () => {
     if (!printConfig.materialId) {
       toast.error("Por favor selecciona un material del inventario.");
       return;
     }
-    const material = inventory.find((i) => i.id === printConfig.materialId);
-    if (!material) return;
+
+    // Refresh Item Stock
+    const { data: material, error: fetchError } = await supabase
+      .from("inventory")
+      .select("*")
+      .eq("id", printConfig.materialId)
+      .single();
+
+    if (fetchError || !material) {
+      toast.error("Error al obtener material");
+      return;
+    }
 
     const pesoNecesario = parseFloat(inputs.peso) || 0;
 
-    const executePrint = () => {
-      const newInventory = inventory.map((item) => {
-        if (item.id === printConfig.materialId) {
-          return { ...item, stock: item.stock - pesoNecesario };
-        }
-        return item;
-      });
-      setInventory(newInventory);
+    const executePrint = async () => {
+      try {
+        // 1. Update Stock
+        const newStock = (material.stock || 0) - pesoNecesario;
+        const { error: stockError } = await supabase
+          .from("inventory")
+          .update({ stock: newStock })
+          .eq("id", printConfig.materialId);
 
-      const desc = printConfig.description
-        ? `${printConfig.description} - ${inputs.peso}g ${material.tipo} ${material.color}`
-        : `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`;
+        if (stockError) throw stockError;
 
-      const newMovement = {
-        id: crypto.randomUUID(),
-        fecha: `${new Date().toLocaleDateString("es-AR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        })} - ${new Date().toLocaleTimeString("es-AR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        })}`,
-        tipo: "INGRESO",
-        monto: printConfig.adjustedPrice,
-        descripcion: desc,
-        nombre: printConfig.clientName || "",
-        stockRestoration: {
-          materialId: material.id,
-          quantity: pesoNecesario,
-        },
-      };
-      setCashbook([newMovement, ...cashbook]);
+        // Update local inventory state
+        setInventory((prev) =>
+          prev.map((item) =>
+            item.id === printConfig.materialId
+              ? { ...item, stock: newStock }
+              : item
+          )
+        );
 
-      setShowPrintModal(false);
-      toast.dismiss();
-      setTimeout(
-        () =>
-          toast.success(
-            "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
-          ),
-        100
-      );
-      // Reset Data
-      setInputs({
-        tiempo_horas: "",
-        tiempo_minutos: "",
-        peso: "",
-        costo_insumos: 0,
-      });
-      setResult(null);
+        // 2. Add to Cashbook
+        const desc = printConfig.description
+          ? `${printConfig.description} - ${inputs.peso}g ${material.tipo} ${material.color}`
+          : `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`;
+
+        const payload = {
+          user_id: user.id,
+          fecha: new Date().toISOString(),
+          tipo: "INGRESO",
+          monto: printConfig.adjustedPrice,
+          descripcion: desc,
+          nombre: printConfig.clientName || "",
+          metadata: {
+            stockRestoration: {
+              materialId: material.id,
+              quantity: pesoNecesario,
+            },
+          },
+        };
+
+        const { error: cashError } = await supabase
+          .from("cashbook")
+          .insert([payload]);
+        if (cashError) throw cashError;
+
+        setShowPrintModal(false);
+        toast.dismiss();
+        toast.success(
+          "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
+        );
+
+        handleResetInputs();
+      } catch (error) {
+        toast.error("Error al registrar: " + error.message);
+      }
     };
 
     if (material.stock < pesoNecesario) {
@@ -272,11 +319,7 @@ export function Calculator() {
             onConfirm={executePrint}
           />
         ),
-        {
-          autoClose: false,
-          closeOnClick: false,
-          icon: false,
-        }
+        { autoClose: false, closeOnClick: false, icon: false }
       );
       return;
     }
@@ -284,30 +327,41 @@ export function Calculator() {
     executePrint();
   };
 
-  const handleSavePreset = () => {
+  // --- Presets Logic ---
+  const handleSavePreset = async () => {
     if (!presetName.trim()) return;
 
-    if (editingPresetId) {
-      // Update existing
-      const updatedPresets = presets.map((p) =>
-        p.id === editingPresetId
-          ? { ...p, name: presetName, config: { ...config } }
-          : p
-      );
-      setPresets(updatedPresets);
-      toast.success("Preset actualizado correctamente");
-    } else {
-      // Create new
-      const newPreset = {
-        id: crypto.randomUUID(),
+    try {
+      const payload = {
+        user_id: user.id,
         name: presetName,
-        config: { ...config },
+        config: config,
       };
-      setPresets([...presets, newPreset]);
-      toast.success("Preset guardado correctamente");
+
+      if (editingPresetId) {
+        const { error } = await supabase
+          .from("presets")
+          .update(payload)
+          .eq("id", editingPresetId);
+        if (error) throw error;
+        setPresets((prev) =>
+          prev.map((p) => (p.id === editingPresetId ? { ...p, ...payload } : p))
+        );
+        toast.success("Preset actualizado");
+      } else {
+        const { data, error } = await supabase
+          .from("presets")
+          .insert([payload])
+          .select();
+        if (error) throw error;
+        setPresets((prev) => [...prev, ...data]);
+        toast.success("Preset guardado");
+      }
+      setPresetName("");
+      setEditingPresetId(null);
+    } catch (error) {
+      toast.error("Error al guardar preset: " + error.message);
     }
-    setPresetName("");
-    setEditingPresetId(null);
   };
 
   const handleEditPreset = (preset) => {
@@ -321,6 +375,37 @@ export function Calculator() {
     setPresetName("");
   };
 
+  const handleDeletePreset = (id) => {
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          message="¿Eliminar este preset?"
+          closeToast={closeToast}
+          onConfirm={async () => {
+            try {
+              const { error } = await supabase
+                .from("presets")
+                .delete()
+                .eq("id", id);
+              if (error) throw error;
+              setPresets((prev) => prev.filter((p) => p.id !== id));
+              toast.dismiss();
+              toast.info("Preset eliminado");
+            } catch (error) {
+              toast.error("Error al eliminar: " + error.message);
+            }
+          }}
+        />
+      ),
+      { autoClose: false, closeOnClick: false, icon: false }
+    );
+  };
+
+  const handleLoadPreset = (id) => {
+    const preset = presets.find((p) => p.id === id);
+    if (preset) setConfig(preset.config);
+  };
+
   const handleResetInputs = () => {
     setInputs({
       tiempo_horas: "",
@@ -331,54 +416,28 @@ export function Calculator() {
     setResult(null);
   };
 
+  // Drag and Drop Logic (Local Reordering of View, logic doesn't persist order for now unless we add order col)
+  // Current implementation only reorders local array.
   const handleDragStart = (e, index) => {
     e.dataTransfer.setData("dragIndex", index);
     e.dataTransfer.effectAllowed = "move";
   };
-
-  const handleDragOver = (e) => {
-    e.preventDefault(); // Necessary to allow dropping
-  };
-
+  const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (e, dropIndex) => {
     const dragIndex = Number(e.dataTransfer.getData("dragIndex"));
     if (dragIndex === dropIndex) return;
-
     const newPresets = [...presets];
     const [draggedItem] = newPresets.splice(dragIndex, 1);
     newPresets.splice(dropIndex, 0, draggedItem);
-
     setPresets(newPresets);
   };
 
-  const handleLoadPreset = (id) => {
-    if (!id) return;
-    const preset = presets.find((p) => p.id === id);
-    if (preset) {
-      setConfig(preset.config);
-    }
-  };
-
-  const handleDeletePreset = (id) => {
-    toast.error(
-      ({ closeToast }) => (
-        <ConfirmToast
-          message="¿Eliminar este preset?"
-          closeToast={closeToast}
-          onConfirm={() => {
-            setPresets(presets.filter((p) => p.id !== id));
-            toast.dismiss();
-            setTimeout(() => toast.info("Preset eliminado"), 100);
-          }}
-        />
-      ),
-      {
-        autoClose: false,
-        closeOnClick: false,
-        icon: false,
-      }
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <Loader2 className="animate-spin" /> Cargando calculadora...
+      </div>
     );
-  };
 
   return (
     <div className="container" style={{ position: "relative" }}>
@@ -398,6 +457,9 @@ export function Calculator() {
             justifyContent: "center",
             backdropFilter: "blur(4px)",
           }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPrintModal(false);
+          }}
         >
           <div
             className="card"
@@ -406,6 +468,8 @@ export function Calculator() {
               maxWidth: "450px",
               margin: "1rem",
               background: "var(--surface)",
+              maxHeight: "90vh",
+              overflowY: "auto",
             }}
           >
             <h3 className="section-title">Confirmar Impresión</h3>
@@ -443,6 +507,43 @@ export function Calculator() {
               )}
             </div>
 
+            <div style={{ marginBottom: "1.5rem" }}>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">
+                  {" "}
+                  <User size={14} /> Cliente{" "}
+                </label>
+                <input
+                  className="input"
+                  placeholder="Opcional"
+                  value={printConfig.clientName}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      clientName: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ marginTop: "1rem" }}>
+                <label className="label">
+                  {" "}
+                  <FileText size={14} /> Descripción{" "}
+                </label>
+                <input
+                  className="input"
+                  placeholder="Ej: Pieza decorativa"
+                  value={printConfig.description}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      description: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
             <div style={{ marginBottom: "2rem" }}>
               <label className="label">
                 2. Ajustar Precio Final (Smart Rounding)
@@ -478,7 +579,6 @@ export function Calculator() {
                   <button
                     className="btn btn-secondary"
                     onClick={() => handleSmartRound("up")}
-                    title="Redondear arriba (+100)"
                     style={{ padding: "0.25rem 0.5rem" }}
                   >
                     ▲
@@ -486,21 +586,11 @@ export function Calculator() {
                   <button
                     className="btn btn-secondary"
                     onClick={() => handleSmartRound("down")}
-                    title="Redondear abajo (-100)"
                     style={{ padding: "0.25rem 0.5rem" }}
                   >
                     ▼
                   </button>
                 </div>
-              </div>
-              <div
-                style={{
-                  fontSize: "0.8rem",
-                  color: "var(--text-secondary)",
-                  marginTop: "0.5rem",
-                }}
-              >
-                Este monto se ingresará en el <strong>Libro de Caja</strong>.
               </div>
             </div>
 
@@ -564,16 +654,13 @@ export function Calculator() {
                 >
                   <input
                     className="input"
-                    placeholder="Nombre nuevo preset (ej: PETG Alta Calidad)"
+                    placeholder="Nombre nuevo preset"
                     value={presetName}
                     onChange={(e) => setPresetName(e.target.value)}
                   />
                   <button
                     className="btn btn-primary"
                     onClick={handleSavePreset}
-                    title={
-                      editingPresetId ? "Actualizar Preset" : "Guardar Preset"
-                    }
                   >
                     {editingPresetId ? (
                       <RefreshCw size={18} />
@@ -585,7 +672,6 @@ export function Calculator() {
                     <button
                       className="btn btn-secondary"
                       onClick={handleCancelEditPreset}
-                      title="Cancelar Edición"
                     >
                       <X size={18} />
                     </button>
@@ -618,14 +704,6 @@ export function Calculator() {
                           cursor: "move",
                           border: "1px solid transparent",
                         }}
-                        onDragEnter={(e) => {
-                          e.currentTarget.style.border =
-                            "1px dashed var(--primary)";
-                        }}
-                        onDragLeave={(e) => {
-                          e.currentTarget.style.border =
-                            "1px solid transparent";
-                        }}
                       >
                         <div
                           style={{
@@ -634,22 +712,14 @@ export function Calculator() {
                             gap: "0.5rem",
                           }}
                         >
-                          <GripVertical
-                            size={16}
-                            style={{
-                              color: "var(--text-secondary)",
-                              cursor: "grab",
-                            }}
-                          />
+                          <GripVertical size={16} className="text-secondary" />
                           <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
                         </div>
 
                         <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button
                             className="btn-icon"
-                            style={{ color: "var(--text-secondary)" }}
                             onClick={() => handleEditPreset(p)}
-                            title="Editar"
                           >
                             <Pencil size={16} />
                           </button>
@@ -657,7 +727,6 @@ export function Calculator() {
                             className="btn-icon"
                             style={{ color: "var(--danger)" }}
                             onClick={() => handleDeletePreset(p.id)}
-                            title="Eliminar"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -669,7 +738,7 @@ export function Calculator() {
               </div>
             )}
 
-            {/* PRESET LOADER (Always Visible if not managing) */}
+            {/* PRESET LOADER */}
             {!showPresetsManager && (
               <div style={{ marginBottom: "1rem" }}>
                 <select
@@ -719,7 +788,8 @@ export function Calculator() {
                   }}
                 >
                   <label className="label" style={{ margin: 0 }}>
-                    Filamento / Material
+                    {" "}
+                    Filamento / Material{" "}
                   </label>
                 </div>
                 <div
@@ -737,14 +807,12 @@ export function Calculator() {
                       const id = e.target.value;
                       setSelectedMaterialId(id);
                       if (id) {
-                        // Find price in inventory
                         const mat = inventory.find((i) => i.id === id);
-                        if (mat) {
+                        if (mat)
                           setConfig({
                             ...config,
                             precio_filamento: mat.precio,
                           });
-                        }
                       }
                     }}
                   >
@@ -784,7 +852,7 @@ export function Calculator() {
                           ...config,
                           precio_filamento: parseFloat(e.target.value),
                         });
-                        setSelectedMaterialId(""); // Clear selection on manual edit
+                        setSelectedMaterialId("");
                       }}
                     />
                     <span
@@ -804,85 +872,53 @@ export function Calculator() {
                 </div>
               </div>
 
-              <div className="input-card-compact">
-                <span className="label-compact">
-                  <Zap size={14} /> Energía ($/kWh)
-                </span>
-                <input
-                  type="number"
-                  className="input-compact-transparent"
-                  value={config.precio_kwh}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      precio_kwh: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className="input-card-compact">
-                <span className="label-compact">
-                  <DollarSign size={14} /> Consumo (W)
-                </span>
-                <input
-                  type="number"
-                  className="input-compact-transparent"
-                  value={config.consumo_watts}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      consumo_watts: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className="input-card-compact">
-                <span className="label-compact">
-                  <AlertCircle size={14} /> Desgaste ($/h)
-                </span>
-                <input
-                  type="number"
-                  className="input-compact-transparent"
-                  value={config.desgaste_hora}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      desgaste_hora: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className="input-card-compact">
-                <span className="label-compact">
-                  <Scale size={14} /> Margen Error (%)
-                </span>
-                <input
-                  type="number"
-                  className="input-compact-transparent"
-                  value={config.margen_error}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      margen_error: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div className="input-card-compact">
-                <span className="label-compact">Multiplicador (x)</span>
-                <input
-                  type="number"
-                  className="input-compact-transparent"
-                  step="0.1"
-                  value={config.multiplicador_ganancia}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      multiplicador_ganancia: parseFloat(e.target.value),
-                    })
-                  }
-                />
-              </div>
+              {[
+                {
+                  label: "Energía ($/kWh)",
+                  icon: <Zap size={14} />,
+                  key: "precio_kwh",
+                },
+                {
+                  label: "Consumo (W)",
+                  icon: <DollarSign size={14} />,
+                  key: "consumo_watts",
+                },
+                {
+                  label: "Desgaste ($/h)",
+                  icon: <AlertCircle size={14} />,
+                  key: "desgaste_hora",
+                },
+                {
+                  label: "Margen Error (%)",
+                  icon: <Scale size={14} />,
+                  key: "margen_error",
+                },
+                {
+                  label: "Multiplicador (x)",
+                  icon: null,
+                  key: "multiplicador_ganancia",
+                  step: 0.1,
+                },
+              ].map((item) => (
+                <div className="input-card-compact" key={item.key}>
+                  <span className="label-compact">
+                    {" "}
+                    {item.icon} {item.label}{" "}
+                  </span>
+                  <input
+                    type="number"
+                    className="input-compact-transparent"
+                    step={item.step || 1}
+                    value={config[item.key]}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        [item.key]: parseFloat(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -893,7 +929,8 @@ export function Calculator() {
               style={{ justifyContent: "space-between" }}
             >
               <span>
-                <RefreshCw size={20} /> Datos de la Pieza
+                {" "}
+                <RefreshCw size={20} /> Datos de la Pieza{" "}
               </span>
               <button
                 className="btn btn-ghost"
@@ -907,11 +944,8 @@ export function Calculator() {
 
             <div className="input-group">
               <label className="label">
-                <Clock
-                  size={16}
-                  style={{ display: "inline", verticalAlign: "text-bottom" }}
-                />{" "}
-                Tiempo de Impresión
+                {" "}
+                <Clock size={16} /> Tiempo de Impresión{" "}
               </label>
               <div style={{ display: "flex", gap: "1rem" }}>
                 <div style={{ flex: 1 }}>
@@ -957,11 +991,8 @@ export function Calculator() {
 
             <div className="input-group">
               <label className="label">
-                <Scale
-                  size={16}
-                  style={{ display: "inline", verticalAlign: "text-bottom" }}
-                />{" "}
-                Peso (Gramos)
+                {" "}
+                <Scale size={16} /> Peso (Gramos){" "}
               </label>
               <input
                 type="number"
@@ -974,16 +1005,13 @@ export function Calculator() {
 
             <div className="input-group">
               <label className="label">
-                <DollarSign
-                  size={16}
-                  style={{ display: "inline", verticalAlign: "text-bottom" }}
-                />{" "}
-                Costo Extra (Insumos)
+                {" "}
+                <DollarSign size={16} /> Costo Extra (Insumos){" "}
               </label>
               <input
                 type="number"
                 className="input"
-                placeholder="Ej: 500 (Tornillos, Imanes)"
+                placeholder="Ej: 500"
                 value={inputs.costo_insumos}
                 onChange={(e) =>
                   setInputs({ ...inputs, costo_insumos: e.target.value })
@@ -995,7 +1023,7 @@ export function Calculator() {
 
         {/* Columna Derecha: Resultados */}
         <div style={{ height: "100%" }}>
-          {result && (
+          {result ? (
             <div
               className="card card-result"
               style={{
@@ -1006,15 +1034,13 @@ export function Calculator() {
                 gap: "1rem",
               }}
             >
-              {/* 1. TITLE */}
               <div
                 className="section-title"
                 style={{ color: "var(--primary)", marginBottom: 0 }}
               >
-                Resumen de Costos
+                {" "}
+                Resumen de Costos{" "}
               </div>
-
-              {/* 2. COST BREAKDOWN */}
               <div
                 style={{
                   display: "flex",
@@ -1048,7 +1074,6 @@ export function Calculator() {
                   icon={<AlertCircle size={16} />}
                   color="var(--danger)"
                 />
-
                 <div
                   style={{
                     height: "1px",
@@ -1056,7 +1081,6 @@ export function Calculator() {
                     margin: "0.5rem 0",
                   }}
                 ></div>
-
                 <div
                   style={{
                     display: "flex",
@@ -1065,20 +1089,18 @@ export function Calculator() {
                   }}
                 >
                   <span
-                    style={{
-                      fontWeight: 600,
-                      color: "var(--text-secondary)",
-                    }}
+                    style={{ fontWeight: 600, color: "var(--text-secondary)" }}
                   >
-                    Costo Total Real
+                    {" "}
+                    Costo Total Real{" "}
                   </span>
                   <span style={{ fontWeight: 700, fontSize: "1.25rem" }}>
-                    ${result.costo_total.toFixed(2)}
+                    {" "}
+                    ${result.costo_total.toFixed(2)}{" "}
                   </span>
                 </div>
               </div>
 
-              {/* 3. PRICE CARD */}
               <div className="price-card">
                 <div
                   style={{
@@ -1089,17 +1111,15 @@ export function Calculator() {
                 >
                   <span style={{ opacity: 0.9 }}>Precio Sugerido</span>
                   <span className="price-badge">
-                    x{config.multiplicador_ganancia}
+                    {" "}
+                    x{config.multiplicador_ganancia}{" "}
                   </span>
                 </div>
                 <div
-                  style={{
-                    fontSize: "2.5rem",
-                    fontWeight: 800,
-                    lineHeight: 1,
-                  }}
+                  style={{ fontSize: "2.5rem", fontWeight: 800, lineHeight: 1 }}
                 >
-                  ${result.precio_venta.toFixed(2)}
+                  {" "}
+                  ${result.precio_venta.toFixed(2)}{" "}
                 </div>
                 <div
                   style={{
@@ -1108,11 +1128,11 @@ export function Calculator() {
                     fontSize: "0.875rem",
                   }}
                 >
-                  Ganancia Neta: ${result.ganancia_neta.toFixed(2)}
+                  {" "}
+                  Ganancia Neta: ${result.ganancia_neta.toFixed(2)}{" "}
                 </div>
               </div>
 
-              {/* 4. ACTION BUTTON */}
               <button
                 style={{
                   background:
@@ -1132,8 +1152,7 @@ export function Calculator() {
                 Imprimir
               </button>
             </div>
-          )}
-          {!result && (
+          ) : (
             <div
               className="card"
               style={{
@@ -1153,175 +1172,6 @@ export function Calculator() {
           )}
         </div>
       </div>
-
-      {/* PRINT CONFIRMATION MODAL */}
-      {showPrintModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPrintModal(false);
-          }}
-        >
-          <div
-            className="card"
-            style={{
-              width: "100%",
-              maxWidth: "420px",
-              padding: "1.5rem",
-              background: "var(--background)",
-              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-              border: "1px solid var(--border)",
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <h3
-              style={{
-                marginTop: 0,
-                marginBottom: "1.5rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <Save size={20} className="text-primary" />
-              Confirmar Venta
-            </h3>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1rem",
-                marginBottom: "1.5rem",
-              }}
-            >
-              {/* Client Name Input */}
-              <div className="input-group" style={{ margin: 0 }}>
-                <label className="label">
-                  <User size={14} style={{ marginRight: "4px" }} />
-                  Nombre del Cliente
-                </label>
-                <input
-                  className="input"
-                  placeholder="Opcional (Ej: Juan Perez)"
-                  value={printConfig.clientName || ""}
-                  onChange={(e) =>
-                    setPrintConfig({
-                      ...printConfig,
-                      clientName: e.target.value,
-                    })
-                  }
-                  autoFocus
-                />
-              </div>
-
-              {/* Description Input */}
-              <div className="input-group" style={{ margin: 0 }}>
-                <label className="label">
-                  <FileText size={14} style={{ marginRight: "4px" }} />
-                  Descripción Extra
-                </label>
-                <input
-                  className="input"
-                  placeholder="Ej: Pieza decorativa"
-                  value={printConfig.description || ""}
-                  onChange={(e) =>
-                    setPrintConfig({
-                      ...printConfig,
-                      description: e.target.value,
-                    })
-                  }
-                />
-                <span
-                  style={{
-                    fontSize: "0.75rem",
-                    color: "var(--text-secondary)",
-                    marginTop: "0.25rem",
-                  }}
-                >
-                  Se guardará como:{" "}
-                  {printConfig.description
-                    ? `${printConfig.description} - ...`
-                    : "Impresión: ..."}
-                </span>
-              </div>
-
-              {/* Price Preview */}
-              <div
-                style={{
-                  background: "var(--surface)",
-                  padding: "1rem",
-                  borderRadius: "var(--radius)",
-                  border: "1px solid var(--border)",
-                  marginTop: "0.5rem",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "0.5rem",
-                    fontSize: "0.9rem",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  <span>Precio Base:</span>
-                  <span>${printConfig.adjustedPrice.toFixed(2)}</span>
-                </div>
-                {/* Smart Rounding Controls could go here if needed, but keeping simple */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: "0.5rem",
-                  }}
-                >
-                  <span style={{ fontWeight: 600 }}>Precio Final:</span>
-                  <span
-                    style={{
-                      fontSize: "1.5rem",
-                      fontWeight: 800,
-                      color: "var(--success)",
-                    }}
-                  >
-                    ${printConfig.adjustedPrice.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "1rem",
-              }}
-            >
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowPrintModal(false)}
-              >
-                Cancelar
-              </button>
-              <button className="btn btn-primary" onClick={handleConfirmPrint}>
-                Confirmar e Imprimir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1347,7 +1197,8 @@ function ResultRow({ label, value, icon, color }) {
         <span>{label}</span>
       </div>
       <span style={{ fontWeight: 600, color: "var(--text-main)" }}>
-        ${value.toFixed(2)}
+        {" "}
+        ${value.toFixed(2)}{" "}
       </span>
     </div>
   );

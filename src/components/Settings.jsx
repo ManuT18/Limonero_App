@@ -1,11 +1,14 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import {
   Download,
   Upload,
   Settings as SettingsIcon,
   Save,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
 
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
@@ -50,34 +53,53 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
 
 export function Settings() {
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const handleExport = () => {
-    // 1. Obtener datos del LocalStorage
-    const inventory = localStorage.getItem("limonero_inventory");
-    const cashbook = localStorage.getItem("limonero_cashbook");
+  const handleExport = async () => {
+    try {
+      setLoading(true);
+      // Fetch all data
+      const { data: inventory } = await supabase.from("inventory").select("*");
+      const { data: cashbook } = await supabase.from("cashbook").select("*");
+      const { data: presets } = await supabase.from("presets").select("*");
+      const { data: config } = await supabase
+        .from("user_config")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
 
-    const data = {
-      inventory: inventory ? JSON.parse(inventory) : [],
-      cashbook: cashbook ? JSON.parse(cashbook) : [],
-      exportDate: new Date().toISOString(),
-    };
+      const data = {
+        inventory: inventory || [],
+        cashbook: cashbook || [],
+        presets: presets || [],
+        config: config?.config || {},
+        exportDate: new Date().toISOString(),
+        version: "v4-supabase",
+      };
 
-    // 2. Crear archivo Blob
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
+      // Create Blob
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
 
-    // 3. Descargar
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `backup_limonero_${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup_limonero_cloud_${
+        new Date().toISOString().split("T")[0]
+      }.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Exportación completada");
+    } catch (error) {
+      toast.error("Error al exportar: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleImportClick = () => {
@@ -93,54 +115,81 @@ export function Settings() {
       try {
         const json = JSON.parse(e.target.result);
 
-        // Validación básica
+        // Basic Validation
         if (!json.inventory && !json.cashbook) {
           toast.error("El archivo no es un backup válido.");
           return;
         }
 
-        const proceedImport = () => {
-          if (json.inventory)
-            localStorage.setItem(
-              "limonero_inventory",
-              JSON.stringify(json.inventory)
-            );
-          if (json.cashbook)
-            localStorage.setItem(
-              "limonero_cashbook",
-              JSON.stringify(json.cashbook)
-            );
-          if (json.config)
-            localStorage.setItem(
-              "limonero_config_v3",
-              JSON.stringify(json.config)
-            );
-          if (json.presets)
-            localStorage.setItem(
-              "limonero_presets",
-              JSON.stringify(json.presets)
-            );
+        const proceedImport = async () => {
+          try {
+            setLoading(true);
+            toast.info("Iniciando restauración...");
 
-          toast.success("Backup restaurado correctamente. Recargando...");
+            // 1. Inventory
+            if (json.inventory && json.inventory.length > 0) {
+              // Ensure user_id is set to current user
+              const inventoryData = json.inventory.map((item) => ({
+                ...item,
+                user_id: user.id,
+              }));
+              const { error } = await supabase
+                .from("inventory")
+                .upsert(inventoryData);
+              if (error) throw error;
+            }
 
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+            // 2. Cashbook
+            if (json.cashbook && json.cashbook.length > 0) {
+              const cashData = json.cashbook.map((item) => ({
+                ...item,
+                user_id: user.id,
+              }));
+              const { error } = await supabase
+                .from("cashbook")
+                .upsert(cashData);
+              if (error) throw error;
+            }
+
+            // 3. Presets
+            if (json.presets && json.presets.length > 0) {
+              const presetData = json.presets.map((item) => ({
+                ...item,
+                user_id: user.id,
+              }));
+              const { error } = await supabase
+                .from("presets")
+                .upsert(presetData);
+              if (error) throw error;
+            }
+
+            // 4. Config
+            if (json.config) {
+              const { error } = await supabase
+                .from("user_config")
+                .upsert({ user_id: user.id, config: json.config });
+              if (error) throw error;
+            }
+
+            toast.success("Backup restaurado en la nube correctamente.");
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (error) {
+            console.error(error);
+            toast.error("Error al importar: " + error.message);
+          } finally {
+            setLoading(false);
+          }
         };
 
         toast.error(
           ({ closeToast }) => (
             <ConfirmToast
-              message="¿Estás seguro? Esto SOBRESCRIBIRÁ todos los datos actuales con los del archivo."
+              message="¿Estás seguro? Esto fusionará/sobrescribirá los datos en la nube con el archivo."
               closeToast={closeToast}
               onConfirm={proceedImport}
             />
           ),
-          {
-            autoClose: false,
-            closeOnClick: false,
-            icon: false,
-          }
+          { autoClose: false, closeOnClick: false, icon: false }
         );
       } catch (error) {
         console.error(error);
@@ -151,34 +200,48 @@ export function Settings() {
     event.target.value = ""; // Reset input
   };
 
-  const handleExportInventoryCSV = () => {
-    const data = localStorage.getItem("limonero_inventory");
-    if (!data) return toast.info("No hay datos de inventario.");
+  const handleExportInventoryCSV = async () => {
+    try {
+      setLoading(true);
+      const { data } = await supabase.from("inventory").select("*");
+      if (!data || data.length === 0) return toast.info("Inventario vacío");
 
-    const inventory = JSON.parse(data);
-    if (inventory.length === 0) return toast.info("El inventario está vacío.");
-
-    // Aplanar/Seleccionar columnas relevantes si se desea, o exportar todo
-    const csv = convertToCSV(inventory);
-    downloadCSV(
-      csv,
-      `inventario_limonero_${new Date().toISOString().split("T")[0]}.csv`
-    );
+      const csv = convertToCSV(data);
+      downloadCSV(
+        csv,
+        `inventario_cloud_${new Date().toISOString().split("T")[0]}.csv`
+      );
+    } catch (e) {
+      toast.error("Error exportando CSV");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleExportCashbookCSV = () => {
-    const data = localStorage.getItem("limonero_cashbook");
-    if (!data) return toast.info("No hay movimientos en caja.");
+  const handleExportCashbookCSV = async () => {
+    try {
+      setLoading(true);
+      const { data } = await supabase.from("cashbook").select("*");
+      if (!data || data.length === 0) return toast.info("Caja vacía");
 
-    const cashbook = JSON.parse(data);
-    if (cashbook.length === 0) return toast.info("La caja está vacía.");
-
-    const csv = convertToCSV(cashbook);
-    downloadCSV(
-      csv,
-      `caja_limonero_${new Date().toISOString().split("T")[0]}.csv`
-    );
+      const csv = convertToCSV(data);
+      downloadCSV(
+        csv,
+        `caja_cloud_${new Date().toISOString().split("T")[0]}.csv`
+      );
+    } catch (e) {
+      toast.error("Error exportando CSV");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "3rem" }}>
+        <Loader2 className="animate-spin" /> Procesando datos...
+      </div>
+    );
 
   return (
     <div className="container">
@@ -187,7 +250,7 @@ export function Settings() {
           className="section-title"
           style={{ margin: 0, marginBottom: "2rem" }}
         >
-          <SettingsIcon size={24} /> Configuración y Respaldo
+          <SettingsIcon size={24} /> Configuración y Respaldo Cloud
         </div>
 
         <div className="grid-2">
@@ -226,17 +289,16 @@ export function Settings() {
                 lineHeight: "1.5",
               }}
             >
-              Descarga una copia de seguridad de todo tu Inventario y Libro de
-              Caja en un archivo JSON. Guárdalo en un lugar seguro (nube, USB)
-              para no perder tu información.
+              Descarga una copia de seguridad de tus datos en la nube (JSON).
             </p>
             <button
               className="btn btn-primary"
               style={{ width: "100%", justifyContent: "center" }}
               onClick={handleExport}
+              disabled={loading}
             >
               <Save size={18} />
-              Descargar Copia de Seguridad
+              Descargar Backup Cloud
             </button>
           </div>
 
@@ -266,7 +328,7 @@ export function Settings() {
               >
                 <Upload size={20} />
               </div>
-              <h3 style={{ margin: 0 }}>Importar Datos</h3>
+              <h3 style={{ margin: 0 }}>Restaurar / Importar</h3>
             </div>
             <p
               style={{
@@ -275,7 +337,7 @@ export function Settings() {
                 lineHeight: "1.5",
               }}
             >
-              Restaura una copia de seguridad previa.
+              Sube un archivo JSON para restaurar datos en tu cuenta.
               <br />
               <span
                 style={{
@@ -288,7 +350,7 @@ export function Settings() {
                 }}
               >
                 <AlertTriangle size={14} />
-                Atención: Esto borrará los datos actuales.
+                Sobrescribirá datos existentes.
               </span>
             </p>
             <input
@@ -302,9 +364,10 @@ export function Settings() {
               className="btn btn-secondary"
               style={{ width: "100%", justifyContent: "center" }}
               onClick={handleImportClick}
+              disabled={loading}
             >
               <Upload size={18} />
-              Seleccionar Archivo y Restaurar
+              Seleccionar Archivo
             </button>
           </div>
         </div>
@@ -316,14 +379,14 @@ export function Settings() {
           <Download size={24} /> Reportes (Excel/CSV)
         </div>
         <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-          Descarga tus datos en formato CSV para abrirlos en Excel, Google
-          Sheets o LibreOffice.
+          Descarga tus datos en formato CSV para abrirlos en Excel.
         </p>
         <div className="grid-2">
           <button
             className="btn btn-secondary"
             style={{ justifyContent: "center" }}
             onClick={handleExportInventoryCSV}
+            disabled={loading}
           >
             <Download size={18} /> Exportar Inventario (.csv)
           </button>
@@ -331,6 +394,7 @@ export function Settings() {
             className="btn btn-secondary"
             style={{ justifyContent: "center" }}
             onClick={handleExportCashbookCSV}
+            disabled={loading}
           >
             <Download size={18} /> Exportar Libro de Caja (.csv)
           </button>
@@ -340,20 +404,15 @@ export function Settings() {
   );
 }
 
-// Utilidades CSV
+// Utilidades CSV (Keep existing logic)
 const convertToCSV = (objArray) => {
   const array = typeof objArray !== "object" ? JSON.parse(objArray) : objArray;
   if (array.length === 0) return "";
-
-  // Obtener headers
   const header = Object.keys(array[0]).join(",");
-
-  // Obtener filas
   const rows = array
     .map((obj) => {
       return Object.values(obj)
         .map((value) => {
-          // Escapar comillas y manejar strings con comas
           const stringValue = value ? value.toString() : "";
           if (stringValue.includes(",") || stringValue.includes('"')) {
             return `"${stringValue.replace(/"/g, '""')}"`;
@@ -363,7 +422,6 @@ const convertToCSV = (objArray) => {
         .join(",");
     })
     .join("\r\n");
-
   return `${header}\r\n${rows}`;
 };
 

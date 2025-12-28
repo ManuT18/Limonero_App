@@ -1,0 +1,3939 @@
+==============================================================================
+ARCHIVO: src/main.jsx
+==============================================================================
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
+
+
+==============================================================================
+ARCHIVO: src/App.jsx
+==============================================================================
+import React, { useState } from "react";
+import { Navbar } from "./components/Navbar";
+import { Calculator } from "./components/Calculator";
+import { Inventory } from "./components/Inventory";
+import { Cashbook } from "./components/Cashbook";
+import { Settings } from "./components/Settings";
+import { Dashboard } from "./components/Dashboard";
+import { ThemeProvider } from "./context/ThemeContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+function App() {
+  const [currentTab, setCurrentTab] = useState("dashboard");
+
+  return (
+    <ThemeProvider>
+      <ToastContainer
+        position="bottom-right"
+        theme="colored"
+        autoClose={1000}
+        hideProgressBar={true}
+      />
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--background)",
+          color: "var(--text-main)",
+        }}
+      >
+        <Navbar currentTab={currentTab} onTabChange={setCurrentTab} />
+
+        <main style={{ padding: "2rem 0" }}>
+          {currentTab === "dashboard" && <Dashboard />}
+          {currentTab === "calculator" && <Calculator />}
+          {currentTab === "inventory" && <Inventory />}
+          {currentTab === "cashbook" && <Cashbook />}
+          {currentTab === "settings" && <Settings />}
+        </main>
+      </div>
+    </ThemeProvider>
+  );
+}
+
+export default App;
+
+
+==============================================================================
+ARCHIVO: src/hooks/useLocalStorage.js
+==============================================================================
+import { useState, useEffect } from 'react';
+
+export function useLocalStorage(key, initialValue) {
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.log(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return [storedValue, setValue];
+}
+
+
+==============================================================================
+ARCHIVO: src/context/ThemeContext.jsx
+==============================================================================
+import React, { createContext, useContext, useEffect, useState } from "react";
+
+const ThemeContext = createContext();
+
+export function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    // Check localStorage or system preference
+    const savedTheme = localStorage.getItem("limonero_theme");
+    if (savedTheme) {
+      return savedTheme;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("limonero_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+
+
+==============================================================================
+ARCHIVO: src/index.css
+==============================================================================
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Reset Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  /* Default (Light) Palette */
+  --primary: #6366f1; /* Indigo 500 */
+  --primary-hover: #4f46e5; /* Indigo 600 */
+  --primary-light: #e0e7ff; /* Indigo 100 */
+  
+  --background: #f8fafc; /* Slate 50 */
+  --surface: #ffffff;
+  --input-bg: #ffffff; /* New variable for inputs */
+  
+  --text-main: #0f172a; /* Slate 900 */
+  --text-secondary: #64748b; /* Slate 500 */
+  --text-light: #94a3b8; /* Slate 400 */
+
+  --border: #e2e8f0; /* Slate 200 */
+  
+  --success: #10b981; /* Emerald 500 */
+  --success-hover: #059669; /* Emerald 600 */
+  --success-bg: #d1fae5;
+  --danger: #ef4444; /* Red 500 */
+  --danger-bg: #fee2e2;
+
+  --radius: 0.75rem; /* 12px */
+  --radius-lg: 1rem; /* 16px */
+  
+  /* Shadows (Neutral) */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Palette overrides */
+.dark {
+  --background: #121212;
+  --surface: #1E1E1E;
+  --input-bg: #2C2C2C;
+
+  --text-main: #E0E0E0;
+  --text-secondary: #A0A0A0;
+  --text-light: #6e6e6e;
+
+  --primary: #C8FF42; /* Brand Lime */
+  --primary-hover: #B2E639;
+  --primary-light: rgba(200, 255, 66, 0.15); /* Low opacity lime */
+
+  /* Specific override for base primary buttons if needed, or keep generic primary */
+  
+  --border: #333333;
+  
+  --success: #81C784;
+  --success-hover: #66bb6a;
+  --success-bg: rgba(129, 199, 132, 0.2);
+  
+  --danger: #E57373;
+  --danger-bg: rgba(229, 115, 115, 0.2);
+
+  /* Adjust shadows for dark mode to be more subtle or removed */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* Special case for Primary Button in Dark Mode */
+.dark .btn-primary {
+  background: linear-gradient(135deg, #7B68EE 0%, #614ddb 100%); /* Call to Action Purple */
+  color: white;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* Layout Utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+/* Components */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.card-result {
+  position: sticky;
+  top: 6rem;
+  background: linear-gradient(to bottom right, #ffffff, #f8fafc);
+}
+
+.dark .card-result {
+  background: linear-gradient(to bottom right, #1E1E1E, #252525);
+  border-color: var(--border);
+}
+
+.price-card {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  color: white; /* Default for Light Mode (Indigo bg) */
+  margin-top: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+}
+
+.dark .price-card {
+  color: #121212; /* Dark text for Dark Mode (Lime bg) */
+  box-shadow: 0 10px 15px -3px rgba(200, 255, 66, 0.3);
+}
+
+.price-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.dark .price-badge {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Inputs */
+.input-group {
+  margin-bottom: 1.25rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  box-sizing: border-box; /* Fix width issues */
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+/* Buttons */
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.95rem;
+  /* Dynamic Transition */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  gap: 0.5rem;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.1);
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: var(--background);
+  color: var(--text-main);
+  box-shadow: var(--shadow);
+  border-color: var(--text-secondary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  /* Ghost buttons often look better with less elevation, but we'll apply consistency */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark .btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+
+.table th {
+  text-align: left;
+  padding: 1rem;
+  background: var(--background);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table td {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-main);
+}
+
+.badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-success { background: var(--success-bg); color: #065f46; }
+.badge-danger { background: var(--danger-bg); color: #991b1b; }
+
+.dark .badge-success { background: rgba(129, 199, 132, 0.15); color: #81C784; border: 1px solid rgba(129, 199, 132, 0.3); }
+.dark .badge-danger { background: rgba(229, 115, 115, 0.15); color: #E57373; border: 1px solid rgba(229, 115, 115, 0.3); }
+
+/* Navbar Buttons */
+.btn-nav {
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-nav:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--primary);
+}
+
+.btn-nav.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.dark .btn-nav.active {
+  background: #333333; /* Dark grey as requested */
+  color: var(--primary);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Custom Dynamic Buttons */
+.btn-gradient-success {
+  background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  padding: 1rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: white;
+  margin-top: 1rem;
+  box-shadow: 0 10px 15px -3px rgba(70, 229, 123, 0.3);
+  width: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-gradient-success:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 20px 25px -5px rgba(70, 229, 123, 0.4), 0 8px 10px -6px rgba(70, 229, 123, 0.1);
+  filter: brightness(1.05);
+}
+
+
+.btn-gradient-success:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Navbar Styles (Refactored from inline) */
+.navbar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: all 0.3s;
+}
+
+.dark .navbar {
+  background: rgba(30, 30, 30, 0.8); /* Darker semi-transparent for dark mode */
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+}
+
+.navbar-logo-bg {
+  background: linear-gradient(135deg, #facc15 0%, #a3e635 100%);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(163, 230, 53, 0.3);
+}
+
+.dark .navbar-logo-bg {
+  /* Ensure the logo pop fits the dark theme or keep it vibrant */
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: #121212; /* Dark icon on bright lime */
+  box-shadow: 0 4px 10px rgba(200, 255, 66, 0.3);
+}
+
+==============================================================================
+ARCHIVO: src/components/Navbar.jsx
+==============================================================================
+import React from "react";
+import {
+  Calculator,
+  Package,
+  BookOpen,
+  Citrus,
+  Settings,
+  Sun,
+  Moon,
+  Activity,
+} from "lucide-react";
+import { useTheme } from "../context/ThemeContext";
+
+export function Navbar({ currentTab, onTabChange }) {
+  const { theme, toggleTheme } = useTheme();
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: Activity },
+    { id: "calculator", label: "Calculadora", icon: Calculator },
+    { id: "inventory", label: "Inventario", icon: Package },
+    { id: "cashbook", label: "Libro de Caja", icon: BookOpen },
+    { id: "settings", label: "Configuración", icon: Settings },
+  ];
+
+  return (
+    <nav className="navbar">
+      <div className="container navbar-container">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div className="navbar-logo-bg">
+            <Citrus size={24} />
+          </div>
+          <div>
+            <h1
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: "700",
+                color: "var(--text-main)",
+                margin: 0,
+                letterSpacing: "-0.025em",
+              }}
+            >
+              El Limonero
+            </h1>
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--text-secondary)",
+                fontWeight: 500,
+              }}
+            >
+              Manager App
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              background:
+                "var(--surface)" /* Changed to surface for better contrast */,
+              padding: "0.25rem",
+              borderRadius: "1rem",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = currentTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`btn btn-nav ${isActive ? "active" : ""}`}
+                >
+                  <Icon size={18} />
+                  <span style={{ marginLeft: "0.5rem" }}>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={toggleTheme}
+            className="btn btn-ghost"
+            style={{
+              padding: "0.5rem",
+              borderRadius: "50%",
+              color: theme === "dark" ? "#fbbf24" : "var(--text-secondary)",
+            }}
+            title={
+              theme === "dark"
+                ? "Cambiar a Modo Claro"
+                : "Cambiar a Modo Oscuro"
+            }
+          >
+            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+
+==============================================================================
+ARCHIVO: src/components/Dashboard.jsx
+==============================================================================
+import React, { useMemo } from "react";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Package,
+  Activity,
+  PieChart,
+} from "lucide-react";
+
+export function Dashboard() {
+  const [inventory] = useLocalStorage("limonero_inventory", []);
+  const [cashbook] = useLocalStorage("limonero_cashbook", []);
+
+  // 1. Cálculos de KPIs
+  const kpis = useMemo(() => {
+    // Valor del Inventario
+    const inventoryValue = inventory.reduce((total, item) => {
+      const precioPorGramo = item.precio / 1000; // precio es por KG
+      return total + precioPorGramo * item.stock;
+    }, 0);
+
+    // Balance Total
+    const totalIncome = cashbook
+      .filter((m) => m.tipo === "INGRESO")
+      .reduce((t, m) => t + m.monto, 0);
+    const totalExpense = cashbook
+      .filter((m) => m.tipo === "EGRESO")
+      .reduce((t, m) => t + m.monto, 0);
+    const balance = totalIncome - totalExpense;
+
+    // Movimientos del Mes Actual
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const currentMonthMoves = cashbook.filter((m) => {
+      const d = new Date(m.fecha); // Asumiendo formato compatible o ISO
+      // Nota: Si 'fecha' es LocaleString 'dd/mm/yyyy', el Date parse puede fallar.
+      // Mejor parsear manualmente si es necesario. En Cashbook se usa new Date().toLocaleString()
+      // Intentaremos parseo flexible o usar timestamp si estuviera disponible.
+      // Fallback simple: String matching para "M/YYYY" o confiar en Date parse
+      return true;
+    });
+    // *Mejora*: Para asegurar compatibilidad con toLocaleString(), parseamos simple:
+    const monthlyIncome = cashbook.reduce((acc, m) => {
+      const parts = m.fecha.split(",")[0].split("/"); // dd/mm/yyyy
+      if (parts.length !== 3) return acc;
+      const month = parseInt(parts[1]) - 1;
+      const year = parseInt(parts[2]);
+      if (
+        month === currentMonth &&
+        year === currentYear &&
+        m.tipo === "INGRESO"
+      ) {
+        return acc + m.monto;
+      }
+      return acc;
+    }, 0);
+
+    return {
+      inventoryValue,
+      balance,
+      monthlyIncome,
+      itemCount: inventory.length,
+    };
+  }, [inventory, cashbook]);
+
+  // 2. Datos para Gráfico (Últimos 6 meses)
+  const chartData = useMemo(() => {
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = `${d.getMonth() + 1}/${d.getFullYear()}`;
+      months.push({
+        key,
+        income: 0,
+        expense: 0,
+        label: d.toLocaleString("es-ES", { month: "short" }),
+      });
+    }
+
+    cashbook.forEach((m) => {
+      const parts = m.fecha.split(",")[0].split("/");
+      if (parts.length < 3) return;
+      const key = `${parseInt(parts[1])}/${parts[2]}`;
+
+      const monthData = months.find((x) => x.key === key);
+      if (monthData) {
+        if (m.tipo === "INGRESO") monthData.income += m.monto;
+        if (m.tipo === "EGRESO") monthData.expense += m.monto;
+      }
+    });
+    return months;
+  }, [cashbook]);
+
+  const maxChartValue = Math.max(
+    ...chartData.map((d) => Math.max(d.income, d.expense)),
+    100
+  );
+
+  return (
+    <div className="container">
+      <h2 className="section-title" style={{ marginBottom: "2rem" }}>
+        <Activity size={24} /> Panel de Control
+      </h2>
+
+      {/* KPI Cards */}
+      <div
+        className="grid-3"
+        style={{
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          display: "grid",
+          gap: "1rem",
+          marginBottom: "2rem",
+        }}
+      >
+        {/* Balance Global */}
+        <div
+          className="card"
+          style={{ borderLeft: "4px solid var(--primary)" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                BALANCE GLOBAL
+              </div>
+              <div
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  color: kpis.balance >= 0 ? "var(--success)" : "var(--danger)",
+                }}
+              >
+                ${kpis.balance.toLocaleString()}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "0.5rem",
+                background: "var(--background)",
+                borderRadius: "50%",
+              }}
+            >
+              <DollarSign size={20} color="var(--primary)" />
+            </div>
+          </div>
+        </div>
+
+        {/* Valor Inventario */}
+        <div className="card" style={{ borderLeft: "4px solid #F59E0B" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                VALOR INVENTARIO
+              </div>
+              <div style={{ fontSize: "1.75rem", fontWeight: 800 }}>
+                $
+                {kpis.inventoryValue.toLocaleString(undefined, {
+                  maximumFractionDigits: 0,
+                })}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "0.5rem",
+                background: "var(--background)",
+                borderRadius: "50%",
+              }}
+            >
+              <Package size={20} color="#F59E0B" />
+            </div>
+          </div>
+          <div
+            style={{
+              fontSize: "0.8rem",
+              color: "var(--text-secondary)",
+              marginTop: "0.5rem",
+            }}
+          >
+            {kpis.itemCount} rollos registrados
+          </div>
+        </div>
+
+        {/* Ingresos Mes */}
+        <div className="card" style={{ borderLeft: "4px solid #10B981" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "start",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "var(--text-secondary)",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                }}
+              >
+                INGRESOS (ESTE MES)
+              </div>
+              <div
+                style={{
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                  color: "#10B981",
+                }}
+              >
+                ${kpis.monthlyIncome.toLocaleString()}
+              </div>
+            </div>
+            <div
+              style={{
+                padding: "0.5rem",
+                background: "var(--background)",
+                borderRadius: "50%",
+              }}
+            >
+              <TrendingUp size={20} color="#10B981" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid-2" style={{ alignItems: "start" }}>
+        {/* Income vs Expense Chart */}
+        <div className="card">
+          <div className="section-title" style={{ fontSize: "1.1rem" }}>
+            <TrendingUp size={18} /> Ingresos vs Egresos (6 Meses)
+          </div>
+          <div
+            style={{
+              height: "200px",
+              display: "flex",
+              alignItems: "flex-end",
+              gap: "1rem",
+              paddingTop: "2rem",
+            }}
+          >
+            {chartData.map((d, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-end",
+                  gap: "4px",
+                }}
+              >
+                {/* Bars Container */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "4px",
+                    height: "100%",
+                    alignItems: "flex-end",
+                    justifyContent: "center",
+                  }}
+                >
+                  {/* Income Bar */}
+                  <div
+                    style={{
+                      width: "30%",
+                      height: `${(d.income / maxChartValue) * 100}%`,
+                      background: "#10B981",
+                      borderRadius: "4px 4px 0 0",
+                      transition: "height 0.3s ease",
+                      minHeight: d.income > 0 ? "4px" : "0",
+                    }}
+                    title={`Ingresos: $${d.income}`}
+                  />
+
+                  {/* Expense Bar */}
+                  <div
+                    style={{
+                      width: "30%",
+                      height: `${(d.expense / maxChartValue) * 100}%`,
+                      background: "#EF4444",
+                      borderRadius: "4px 4px 0 0",
+                      transition: "height 0.3s ease",
+                      minHeight: d.expense > 0 ? "4px" : "0",
+                    }}
+                    title={`Egresos: $${d.expense}`}
+                  />
+                </div>
+                {/* Label */}
+                <div
+                  style={{
+                    textAlign: "center",
+                    fontSize: "0.7rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {d.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Actions / Tips */}
+        <div className="card">
+          <div className="section-title" style={{ fontSize: "1.1rem" }}>
+            <PieChart size={18} /> Distribución Rápida
+          </div>
+          <p
+            style={{
+              fontSize: "0.9rem",
+              color: "var(--text-secondary)",
+              marginBottom: "1rem",
+            }}
+          >
+            Un resumen rápido de tu actividad reciente.
+          </p>
+
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.5rem",
+                background: "var(--background)",
+                borderRadius: "var(--radius)",
+              }}
+            >
+              <span>Promedio Ingreso/Venta</span>
+              <strong>
+                $
+                {Math.round(
+                  kpis.monthlyIncome /
+                    (cashbook.filter(
+                      (m) =>
+                        m.tipo === "INGRESO" &&
+                        m.fecha.includes(new Date().getFullYear())
+                    ).length || 1)
+                )}
+              </strong>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "0.5rem",
+                background: "var(--background)",
+                borderRadius: "var(--radius)",
+              }}
+            >
+              <span>Materiales en Stock</span>
+              <strong>{kpis.itemCount}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==============================================================================
+ARCHIVO: src/components/Settings.jsx
+==============================================================================
+import React, { useRef } from "react";
+import { toast } from "react-toastify";
+import {
+  Download,
+  Upload,
+  Settings as SettingsIcon,
+  Save,
+  AlertTriangle,
+} from "lucide-react";
+
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+);
+
+export function Settings() {
+  const fileInputRef = useRef(null);
+
+  const handleExport = () => {
+    // 1. Obtener datos del LocalStorage
+    const inventory = localStorage.getItem("limonero_inventory");
+    const cashbook = localStorage.getItem("limonero_cashbook");
+
+    const data = {
+      inventory: inventory ? JSON.parse(inventory) : [],
+      cashbook: cashbook ? JSON.parse(cashbook) : [],
+      exportDate: new Date().toISOString(),
+    };
+
+    // 2. Crear archivo Blob
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+
+    // 3. Descargar
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `backup_limonero_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target.result);
+
+        // Validación básica
+        if (!json.inventory && !json.cashbook) {
+          toast.error("El archivo no es un backup válido.");
+          return;
+        }
+
+        const proceedImport = () => {
+          if (json.inventory)
+            localStorage.setItem(
+              "limonero_inventory",
+              JSON.stringify(json.inventory)
+            );
+          if (json.cashbook)
+            localStorage.setItem(
+              "limonero_cashbook",
+              JSON.stringify(json.cashbook)
+            );
+          if (json.config)
+            localStorage.setItem(
+              "limonero_config_v3",
+              JSON.stringify(json.config)
+            );
+          if (json.presets)
+            localStorage.setItem(
+              "limonero_presets",
+              JSON.stringify(json.presets)
+            );
+
+          toast.success("Backup restaurado correctamente. Recargando...");
+
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        };
+
+        toast.error(
+          ({ closeToast }) => (
+            <ConfirmToast
+              message="¿Estás seguro? Esto SOBRESCRIBIRÁ todos los datos actuales con los del archivo."
+              closeToast={closeToast}
+              onConfirm={proceedImport}
+            />
+          ),
+          {
+            autoClose: false,
+            closeOnClick: false,
+            icon: false,
+          }
+        );
+      } catch (error) {
+        console.error(error);
+        toast.error("Error al leer el archivo de backup");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ""; // Reset input
+  };
+
+  const handleExportInventoryCSV = () => {
+    const data = localStorage.getItem("limonero_inventory");
+    if (!data) return toast.info("No hay datos de inventario.");
+
+    const inventory = JSON.parse(data);
+    if (inventory.length === 0) return toast.info("El inventario está vacío.");
+
+    // Aplanar/Seleccionar columnas relevantes si se desea, o exportar todo
+    const csv = convertToCSV(inventory);
+    downloadCSV(
+      csv,
+      `inventario_limonero_${new Date().toISOString().split("T")[0]}.csv`
+    );
+  };
+
+  const handleExportCashbookCSV = () => {
+    const data = localStorage.getItem("limonero_cashbook");
+    if (!data) return toast.info("No hay movimientos en caja.");
+
+    const cashbook = JSON.parse(data);
+    if (cashbook.length === 0) return toast.info("La caja está vacía.");
+
+    const csv = convertToCSV(cashbook);
+    downloadCSV(
+      csv,
+      `caja_limonero_${new Date().toISOString().split("T")[0]}.csv`
+    );
+  };
+
+  return (
+    <div className="container">
+      <div className="card">
+        <div
+          className="section-title"
+          style={{ margin: 0, marginBottom: "2rem" }}
+        >
+          <SettingsIcon size={24} /> Configuración y Respaldo
+        </div>
+
+        <div className="grid-2">
+          {/* Exportar */}
+          <div
+            style={{
+              padding: "1.5rem",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div
+                style={{
+                  padding: "0.5rem",
+                  background: "rgba(163, 230, 53, 0.2)",
+                  borderRadius: "50%",
+                  color: "var(--primary)",
+                }}
+              >
+                <Download size={20} />
+              </div>
+              <h3 style={{ margin: 0 }}>Exportar Datos</h3>
+            </div>
+            <p
+              style={{
+                color: "var(--text-secondary)",
+                marginBottom: "1.5rem",
+                lineHeight: "1.5",
+              }}
+            >
+              Descarga una copia de seguridad de todo tu Inventario y Libro de
+              Caja en un archivo JSON. Guárdalo en un lugar seguro (nube, USB)
+              para no perder tu información.
+            </p>
+            <button
+              className="btn btn-primary"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={handleExport}
+            >
+              <Save size={18} />
+              Descargar Copia de Seguridad
+            </button>
+          </div>
+
+          {/* Importar */}
+          <div
+            style={{
+              padding: "1.5rem",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div
+                style={{
+                  padding: "0.5rem",
+                  background: "rgba(59, 130, 246, 0.2)",
+                  borderRadius: "50%",
+                  color: "#3b82f6",
+                }}
+              >
+                <Upload size={20} />
+              </div>
+              <h3 style={{ margin: 0 }}>Importar Datos</h3>
+            </div>
+            <p
+              style={{
+                color: "var(--text-secondary)",
+                marginBottom: "1.5rem",
+                lineHeight: "1.5",
+              }}
+            >
+              Restaura una copia de seguridad previa.
+              <br />
+              <span
+                style={{
+                  color: "var(--danger)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  marginTop: "0.5rem",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <AlertTriangle size={14} />
+                Atención: Esto borrará los datos actuales.
+              </span>
+            </p>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept=".json"
+              onChange={handleFileChange}
+            />
+            <button
+              className="btn btn-secondary"
+              style={{ width: "100%", justifyContent: "center" }}
+              onClick={handleImportClick}
+            >
+              <Upload size={18} />
+              Seleccionar Archivo y Restaurar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Sección CSV */}
+      <div className="card" style={{ marginTop: "2rem" }}>
+        <div className="section-title">
+          <Download size={24} /> Reportes (Excel/CSV)
+        </div>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
+          Descarga tus datos en formato CSV para abrirlos en Excel, Google
+          Sheets o LibreOffice.
+        </p>
+        <div className="grid-2">
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: "center" }}
+            onClick={handleExportInventoryCSV}
+          >
+            <Download size={18} /> Exportar Inventario (.csv)
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ justifyContent: "center" }}
+            onClick={handleExportCashbookCSV}
+          >
+            <Download size={18} /> Exportar Libro de Caja (.csv)
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Utilidades CSV
+const convertToCSV = (objArray) => {
+  const array = typeof objArray !== "object" ? JSON.parse(objArray) : objArray;
+  if (array.length === 0) return "";
+
+  // Obtener headers
+  const header = Object.keys(array[0]).join(",");
+
+  // Obtener filas
+  const rows = array
+    .map((obj) => {
+      return Object.values(obj)
+        .map((value) => {
+          // Escapar comillas y manejar strings con comas
+          const stringValue = value ? value.toString() : "";
+          if (stringValue.includes(",") || stringValue.includes('"')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(",");
+    })
+    .join("\r\n");
+
+  return `${header}\r\n${rows}`;
+};
+
+const downloadCSV = (csvContent, fileName) => {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+==============================================================================
+ARCHIVO: src/components/Inventory.jsx
+==============================================================================
+import React, { useState } from "react";
+import { toast } from "react-toastify";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import {
+  Trash2,
+  Plus,
+  Search,
+  Package,
+  Pencil,
+  Check,
+  X,
+  Copy,
+} from "lucide-react";
+
+const getColor = (name) => {
+  if (!name) return "#E5E7EB"; // grays.200
+  const lower = name.toLowerCase().trim();
+  const map = {
+    // Básicos
+    rojo: "#EF4444", // red.500
+    azul: "#3B82F6", // blue.500
+    verde: "#22C55E", // green.500
+    amarillo: "#EAB308", // yellow.500
+    naranja: "#F97316", // orange.500
+    violeta: "#8B5CF6", // violet.500
+    rosa: "#EC4899", // pink.500
+    negro: "#1F2937", // gray.800
+    blanco: "#F9FAFB", // gray.50
+    gris: "#9CA3AF", // gray.400
+    marron: "#78350F", // amber.900
+
+    // Variantes
+    "verde claro": "#86EFAC",
+    "verde oscuro": "#14532D",
+    "azul claro": "#93C5FD",
+    "azul oscuro": "#1E3A8A",
+    celeste: "#0EA5E9",
+    turquesa: "#14B8A6",
+
+    // Materiales
+    dorado: "#CA8A04",
+    plateado: "#D1D5DB",
+    bronce: "#92400E",
+    transparente: "rgba(255, 255, 255, 0.5)",
+    natural: "#FDE68A",
+  };
+  return map[lower] || "#9CA3AF"; // Default gray
+};
+
+const sortItems = (items) => {
+  return [...items].sort((a, b) => {
+    // 1. Tipo
+    const tipoComp = a.tipo.localeCompare(b.tipo);
+    if (tipoComp !== 0) return tipoComp;
+    // 2. Marca
+    const marcaComp = a.marca.localeCompare(b.marca);
+    if (marcaComp !== 0) return marcaComp;
+    // 3. Color
+    return a.color.localeCompare(b.color);
+  });
+};
+
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+);
+
+export function Inventory() {
+  const [items, setItems] = useLocalStorage("limonero_inventory", []);
+  const [newItem, setNewItem] = useState({
+    tipo: "",
+    marca: "",
+    color: "",
+    stock: "",
+    precio: "",
+  });
+  const [isAdding, setIsAdding] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editValues, setEditValues] = useState({});
+
+  const handleAdd = () => {
+    if (!newItem.tipo || !newItem.stock) return;
+
+    setItems(
+      sortItems([
+        ...items,
+        {
+          ...newItem,
+          id: crypto.randomUUID(),
+          stock: parseFloat(newItem.stock),
+          precio: parseFloat(newItem.precio),
+        },
+      ])
+    );
+    setNewItem({ tipo: "", marca: "", color: "", stock: "", precio: "" });
+
+    setIsAdding(false);
+    toast.success("Material agregado exitosamente");
+  };
+
+  const handleDelete = (id) => {
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          closeToast={closeToast}
+          message="¿Eliminar este material?"
+          onConfirm={() => {
+             setItems((prev) => prev.filter((item) => item.id !== id));
+             toast.dismiss(); // Cierra el toast de confirmación si quedara abierto
+             setTimeout(() => toast.error("Material eliminado"), 100); // Feedback visual
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setEditValues({ ...item });
+  };
+
+  const handleSaveEdit = () => {
+    setItems((prev) =>
+      sortItems(
+        prev.map((item) =>
+          item.id === editingId
+            ? {
+                ...editValues,
+                stock: parseFloat(editValues.stock) || 0,
+                precio: parseFloat(editValues.precio) || 0,
+              }
+            : item
+        )
+      )
+    );
+    setEditingId(null);
+    setEditValues({});
+    toast.success("Material actualizado");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const handleDuplicate = (item) => {
+    const duplicatedItem = {
+      ...item,
+      id: crypto.randomUUID(),
+    };
+
+    setItems(sortItems([...items, duplicatedItem]));
+    toast.info("Material duplicado");
+  };
+
+  const filteredItems = items.filter(
+    (item) =>
+      item.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.color.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="container">
+      <div className="card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "2rem",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div className="section-title" style={{ margin: 0 }}>
+            <Package size={24} /> Inventario de Materiales
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              flex: 1,
+              justifyContent: "flex-end",
+            }}
+          >
+            <div
+              style={{ position: "relative", maxWidth: "300px", width: "100%" }}
+            >
+              <Search
+                size={18}
+                style={{
+                  position: "absolute",
+                  left: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "var(--text-secondary)",
+                }}
+              />
+              <input
+                className="input"
+                placeholder="Buscar..."
+                style={{ paddingLeft: "2.5rem" }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <button
+              className="btn btn-primary"
+              onClick={() => setIsAdding(!isAdding)}
+            >
+              <Plus size={18} />
+              Nuevo
+            </button>
+          </div>
+        </div>
+
+        {isAdding && (
+          <div
+            style={{
+              background: "var(--background)",
+              padding: "1.5rem",
+              borderRadius: "var(--radius)",
+              marginBottom: "2rem",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h3
+              style={{ marginTop: 0, marginBottom: "1rem", fontSize: "1rem" }}
+            >
+              Agregar Nuevo Material
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Tipo</label>
+                <input
+                  className="input"
+                  placeholder="Ej: PLA"
+                  value={newItem.tipo}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, tipo: e.target.value })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Marca</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Grilon"
+                  value={newItem.marca}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, marca: e.target.value })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Color</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Rojo"
+                  value={newItem.color}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, color: e.target.value })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Stock (gr)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="1000"
+                  value={newItem.stock}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, stock: e.target.value })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Precio Compra ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="25000"
+                  value={newItem.precio}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, precio: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "1rem",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setIsAdding(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleAdd}>
+                Guardar Item
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Color</th>
+                <th>Stock</th>
+                <th>Valor</th>
+                <th style={{ textAlign: "right" }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="5"
+                    style={{
+                      textAlign: "center",
+                      padding: "3rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    No se encontraron items
+                  </td>
+                </tr>
+              ) : (
+                filteredItems.map((item) => (
+                  <tr key={item.id}>
+                    {editingId === item.id ? (
+                      <>
+                        {/* EDICION */}
+                        <td>
+                          <input
+                            className="input"
+                            value={editValues.tipo}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                tipo: e.target.value,
+                              })
+                            }
+                            placeholder="Tipo"
+                            style={{ marginBottom: "0.25rem" }}
+                          />
+                          <input
+                            className="input"
+                            value={editValues.marca}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                marca: e.target.value,
+                              })
+                            }
+                            placeholder="Marca"
+                            style={{ fontSize: "0.85rem" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            value={editValues.color}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                color: e.target.value,
+                              })
+                            }
+                            placeholder="Color"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="number"
+                            value={editValues.stock}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                stock: e.target.value,
+                              })
+                            }
+                            placeholder="Stock"
+                            style={{ width: "80px" }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="number"
+                            value={editValues.precio}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                precio: e.target.value,
+                              })
+                            }
+                            placeholder="Precio"
+                            style={{ width: "80px" }}
+                          />
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <button
+                              className="btn btn-primary"
+                              style={{ padding: "0.5rem" }}
+                              onClick={handleSaveEdit}
+                              title="Guardar"
+                            >
+                              <Check size={16} />
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: "0.5rem" }}
+                              onClick={handleCancelEdit}
+                              title="Cancelar"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        {/* VISTA NORMAL */}
+                        <td>
+                          <span
+                            style={{
+                              fontWeight: 600,
+                              color: "var(--text-main)",
+                            }}
+                          >
+                            {item.tipo}
+                          </span>
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            {item.marca}
+                          </div>
+                        </td>
+                        <td>
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderRadius: "50%",
+                                background: getColor(item.color),
+                                border:
+                                  item.color?.toLowerCase() === "blanco"
+                                    ? "1px solid var(--border)"
+                                    : "none",
+                              }}
+                            ></div>
+                            {item.color}
+                          </div>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              item.stock < 200
+                                ? "badge-danger"
+                                : "badge-success"
+                            }`}
+                          >
+                            {item.stock} gr
+                          </span>
+                        </td>
+                        <td>${item.precio}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: "0.5rem",
+                            }}
+                          >
+                            <button
+                              className="btn btn-ghost"
+                              style={{ padding: "0.5rem" }}
+                              onClick={() => handleEdit(item)}
+                              title="Editar"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button
+                              className="btn btn-ghost"
+                              style={{ padding: "0.5rem" }}
+                              onClick={() => handleDuplicate(item)}
+                              title="Duplicar"
+                            >
+                              <Copy size={18} />
+                            </button>
+                            <button
+                              className="btn btn-ghost"
+                              style={{
+                                color: "var(--danger)",
+                                padding: "0.5rem",
+                              }}
+                              onClick={() => handleDelete(item.id)}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==============================================================================
+ARCHIVO: src/components/Cashbook.jsx
+==============================================================================
+import React, { useState } from "react";
+import { toast } from "react-toastify";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import {
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Plus,
+  BookOpen,
+  TrendingUp,
+  TrendingDown,
+  Trash2,
+  Pencil,
+} from "lucide-react";
+
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+);
+
+export function Cashbook() {
+  const [movements, setMovements] = useLocalStorage("limonero_cashbook", []);
+  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
+  const [newMovement, setNewMovement] = useState({
+    tipo: "INGRESO",
+    monto: "",
+    descripcion: "",
+    nombre: "",
+  });
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  const handleSave = () => {
+    if (!newMovement.monto || !newMovement.descripcion) return;
+
+    if (editingId) {
+      // Editar existente
+      const updatedMovements = movements.map((m) => {
+        if (m.id === editingId) {
+          return {
+            ...m,
+            ...newMovement,
+            monto: parseFloat(newMovement.monto),
+          };
+        }
+        return m;
+      });
+      setMovements(updatedMovements);
+      setEditingId(null);
+    } else {
+      // Crear nuevo
+      setMovements([
+        {
+          ...newMovement,
+          id: crypto.randomUUID(),
+          fecha: `${new Date().toLocaleDateString("es-AR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })} - ${new Date().toLocaleTimeString("es-AR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })}`,
+          monto: parseFloat(newMovement.monto),
+        },
+        ...movements,
+      ]);
+    }
+
+    setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
+    setIsAdding(false);
+    toast.success(
+      editingId ? "Movimiento actualizado" : "Movimiento registrado"
+    );
+  };
+
+  const handleEdit = (mov) => {
+    setNewMovement({
+      tipo: mov.tipo,
+      monto: mov.monto,
+      descripcion: mov.descripcion,
+      nombre: mov.nombre || "",
+    });
+    setEditingId(mov.id);
+    setIsAdding(true);
+  };
+
+  const handleDelete = (id) => {
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          message="¿Estás seguro de eliminar este registro?"
+          closeToast={closeToast}
+          onConfirm={() => {
+            const mov = movements.find((m) => m.id === id);
+
+            // Stock Restoration Logic
+            if (mov && mov.stockRestoration) {
+              const { materialId, quantity } = mov.stockRestoration;
+              const materialIndex = inventory.findIndex(
+                (i) => i.id === materialId
+              );
+
+              if (materialIndex !== -1) {
+                const newInventory = [...inventory];
+                newInventory[materialIndex] = {
+                  ...newInventory[materialIndex],
+                  stock: newInventory[materialIndex].stock + quantity,
+                };
+                setInventory(newInventory);
+                toast.info(`Stock restaurado: +${quantity}g al inventario`);
+              }
+            }
+
+            setMovements(movements.filter((m) => m.id !== id));
+            toast.dismiss();
+            setTimeout(() => toast.error("Movimiento eliminado"), 100);
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
+  };
+
+  const handleCancel = () => {
+    setIsAdding(false);
+    setEditingId(null);
+    setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
+  };
+
+  const totalIngresos = movements
+    .filter((m) => m.tipo === "INGRESO")
+    .reduce((acc, curr) => acc + curr.monto, 0);
+  const totalEgresos = movements
+    .filter((m) => m.tipo === "EGRESO")
+    .reduce((acc, curr) => acc + curr.monto, 0);
+  const balance = totalIngresos - totalEgresos;
+
+  return (
+    <div className="container">
+      {/* Resumen Cards */}
+      <div
+        className="grid-2"
+        style={{
+          marginBottom: "2rem",
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+        }}
+      >
+        <div className="card" style={{ padding: "1.5rem" }}>
+          <div
+            style={{
+              color: "var(--text-secondary)",
+              fontSize: "0.875rem",
+              marginBottom: "0.5rem",
+            }}
+          >
+            Balance Total
+          </div>
+          <div
+            style={{
+              fontSize: "2rem",
+              fontWeight: 800,
+              color: balance >= 0 ? "var(--text-main)" : "var(--danger)",
+            }}
+          >
+            ${balance.toFixed(2)}
+          </div>
+        </div>
+        <div className="card" style={{ padding: "1.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              color: "var(--success)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <TrendingUp size={16} /> Ingresos
+          </div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            ${totalIngresos.toFixed(2)}
+          </div>
+        </div>
+        <div className="card" style={{ padding: "1.5rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              color: "var(--danger)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            <TrendingDown size={16} /> Egresos
+          </div>
+          <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>
+            ${totalEgresos.toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "2rem",
+          }}
+        >
+          <div className="section-title" style={{ margin: 0 }}>
+            <BookOpen size={24} /> Movimientos
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setNewMovement({ ...newMovement, tipo: "INGRESO" });
+                setIsAdding(true);
+                setEditingId(null);
+              }}
+            >
+              <ArrowUpCircle size={18} color="var(--success)" />
+              Ingreso
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setNewMovement({ ...newMovement, tipo: "EGRESO" });
+                setIsAdding(true);
+                setEditingId(null);
+              }}
+            >
+              <ArrowDownCircle size={18} color="var(--danger)" />
+              Egreso
+            </button>
+          </div>
+        </div>
+
+        {isAdding && (
+          <div
+            style={{
+              background: "var(--background)",
+              padding: "1.5rem",
+              borderRadius: "var(--radius)",
+              marginBottom: "2rem",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: "1rem",
+                fontSize: "1rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              {newMovement.tipo === "INGRESO" ? (
+                <ArrowUpCircle size={20} color="var(--success)" />
+              ) : (
+                <ArrowDownCircle size={20} color="var(--danger)" />
+              )}
+              {editingId
+                ? "Editar Movimiento"
+                : `Registrar ${newMovement.tipo}`}
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 2fr",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Nombre / Entidad</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Juan Perez"
+                  value={newMovement.nombre}
+                  onChange={(e) =>
+                    setNewMovement({ ...newMovement, nombre: e.target.value })
+                  }
+                />
+              </div>
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">Monto ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="0.00"
+                  value={newMovement.monto}
+                  onChange={(e) =>
+                    setNewMovement({ ...newMovement, monto: e.target.value })
+                  }
+                />
+              </div>
+              <div
+                className="input-group"
+                style={{ margin: 0, gridColumn: "span 2" }}
+              >
+                <label className="label">Descripción</label>
+                <input
+                  className="input"
+                  placeholder="Ej: Venta de impresión"
+                  value={newMovement.descripcion}
+                  onChange={(e) =>
+                    setNewMovement({
+                      ...newMovement,
+                      descripcion: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "1rem",
+              }}
+            >
+              <button className="btn btn-secondary" onClick={handleCancel}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleSave}>
+                {editingId ? "Actualizar" : "Guardar"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="table-container">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Tipo</th>
+                <th style={{ textAlign: "right" }}>Monto</th>
+                <th style={{ textAlign: "right", width: "100px" }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movements.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    style={{
+                      textAlign: "center",
+                      padding: "3rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    No hay movimientos registrados
+                  </td>
+                </tr>
+              ) : (
+                movements.map((mov) => (
+                  <tr key={mov.id}>
+                    <td
+                      style={{
+                        color: "var(--text-secondary)",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {mov.fecha}
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{mov.nombre || "-"}</td>
+                    <td style={{ fontWeight: 500 }}>{mov.descripcion}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          mov.tipo === "INGRESO"
+                            ? "badge-success"
+                            : "badge-danger"
+                        }`}
+                      >
+                        {mov.tipo}
+                      </span>
+                    </td>
+                    <td
+                      style={{
+                        textAlign: "right",
+                        fontWeight: 600,
+                        color:
+                          mov.tipo === "INGRESO"
+                            ? "var(--success)"
+                            : "var(--danger)",
+                      }}
+                    >
+                      {mov.tipo === "INGRESO" ? "+" : "-"}$
+                      {mov.monto.toFixed(2)}
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "0.5rem",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <button
+                          className="btn-icon"
+                          style={{
+                            padding: "0.4rem",
+                            color: "var(--text-secondary)",
+                          }}
+                          onClick={() => handleEdit(mov)}
+                          title="Editar"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          className="btn-icon"
+                          style={{ padding: "0.4rem", color: "var(--danger)" }}
+                          onClick={() => handleDelete(mov.id)}
+                          title="Eliminar"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+==============================================================================
+ARCHIVO: src/components/CalculatorCompact.css
+==============================================================================
+.input-card-compact {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface); /* Fallback */
+  background: rgba(255, 255, 255, 0.5); /* Glass-like effect */
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.dark .input-card-compact {
+  background: rgba(30, 30, 30, 0.5);
+}
+
+.input-card-compact:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.input-card-compact:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+  background: var(--surface);
+}
+
+.label-compact {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.input-compact-transparent {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  padding: 0;
+  width: 100%;
+  outline: none;
+  font-family: inherit;
+}
+
+.input-compact-transparent::placeholder {
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+/* Hide Spinners */
+.input-compact-transparent::-webkit-inner-spin-button, 
+.input-compact-transparent::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+
+==============================================================================
+ARCHIVO: src/components/Calculator.jsx
+==============================================================================
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import { useLocalStorage } from "../hooks/useLocalStorage";
+import "./CalculatorCompact.css"; // We will create this file
+import {
+  Settings,
+  RefreshCw,
+  DollarSign,
+  Zap,
+  Clock,
+  Scale,
+  AlertCircle,
+  Package,
+  Calculator as CalculatorIcon,
+  Save,
+  Trash2,
+  Pencil,
+  X,
+  GripVertical,
+  Eraser,
+  User,
+  FileText,
+} from "lucide-react";
+
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div
+      style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}
+    >
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Confirmar
+      </button>
+    </div>
+  </div>
+);
+
+export function Calculator() {
+  // Configuración Global (Gastos Fijos)
+  // v3: Cambiado margen_ganancia (%) a multiplicador_ganancia (x)
+  const [config, setConfig] = useLocalStorage("limonero_config_v3", {
+    precio_filamento: 25000, // Precio por KG
+    precio_kwh: 150.0,
+    consumo_watts: 150, // Consumo promedio impresora
+    desgaste_hora: 50.0, // Depreciación/Mantenimiento
+    precio_repuestos: 0, // Extra repuestos (opcional)
+    margen_error: 5.0, // % de error (fallos)
+    multiplicador_ganancia: 2.0, // Multiplicador (ej: 2.0 = x2)
+  });
+
+  const [presets, setPresets] = useLocalStorage("limonero_presets", []);
+
+  const [presetName, setPresetName] = useState("");
+  const [editingPresetId, setEditingPresetId] = useState(null);
+  const [showPresetsManager, setShowPresetsManager] = useState(false);
+  const [selectedMaterialId, setSelectedMaterialId] = useState("");
+
+  // Datos de la Pieza
+  const [inputs, setInputs] = useState({
+    tiempo_horas: "",
+    tiempo_minutos: "",
+    peso: "", // gramos
+    costo_insumos: 0, // tornillos, imanes, etc.
+  });
+
+  const [result, setResult] = useState(null);
+
+  const handleCalculate = () => {
+    // 1. Normalizar inputs
+    const t_horas = parseInt(inputs.tiempo_horas) || 0;
+    const t_minutos = parseInt(inputs.tiempo_minutos) || 0;
+    const tiempo_total_horas = t_horas + t_minutos / 60;
+
+    const peso_gr = parseFloat(inputs.peso) || 0;
+    const insumos = parseFloat(inputs.costo_insumos) || 0;
+
+    // 2. Cálculos Base
+    // Material: (Precio KG / 1000) * Peso
+    const costo_material = (config.precio_filamento / 1000) * peso_gr;
+
+    // Energía: (Watts / 1000) * Horas * Precio kWh
+    const consumo_kwh = (config.consumo_watts / 1000) * tiempo_total_horas;
+    const costo_energia = consumo_kwh * config.precio_kwh;
+
+    // Desgaste: Horas * Precio Hora
+    const costo_desgaste = tiempo_total_horas * config.desgaste_hora;
+
+    // 3. Subtotal y Margen de Error
+    const subtotal_costos =
+      costo_material + costo_energia + costo_desgaste + insumos;
+    const costo_error = subtotal_costos * (config.margen_error / 100);
+
+    // 4. Costo Total Real
+    const costo_total = subtotal_costos + costo_error;
+
+    // 5. Precio de Venta
+    // Precio = Costo * Multiplicador
+    const precio_venta = costo_total * config.multiplicador_ganancia;
+    const ganancia_neta = precio_venta - costo_total;
+
+    setResult({
+      costo_material,
+      costo_energia,
+      costo_desgaste,
+      costo_error,
+      insumos,
+      costo_total,
+      precio_venta,
+      ganancia_neta,
+    });
+  };
+
+  // Auto-calcular cuando cambian inputs (opcional, pero moderno)
+  useEffect(() => {
+    if (inputs.peso || inputs.tiempo_horas) {
+      handleCalculate();
+    }
+  }, [inputs, config]);
+
+  // Estados para datos externos (Inventario y Caja)
+  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
+  const [cashbook, setCashbook] = useLocalStorage("limonero_cashbook", []);
+
+  // Estado para el Modal de Impresión
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printConfig, setPrintConfig] = useState({
+    materialId: "",
+    adjustedPrice: 0,
+  });
+
+  // Efecto para inicializar el precio ajustable cuando hay resultados
+  useEffect(() => {
+    if (result) {
+      setPrintConfig((prev) => ({
+        ...prev,
+        adjustedPrice: result.precio_venta,
+      }));
+    }
+  }, [result]);
+
+  const handleOpenPrint = () => {
+    if (!result) return;
+    setPrintConfig({
+      materialId: selectedMaterialId || "",
+      adjustedPrice: result.precio_venta,
+      clientName: "",
+      description: "",
+    });
+    setShowPrintModal(true);
+  };
+
+  const handleSmartRound = (direction) => {
+    const current = printConfig.adjustedPrice;
+    const step = 100;
+    let next;
+
+    if (direction === "up") {
+      if (current % step === 0) {
+        next = current + step;
+      } else {
+        next = Math.ceil(current / step) * step;
+      }
+    } else {
+      if (current % step === 0) {
+        next = current - step;
+      } else {
+        next = Math.floor(current / step) * step;
+      }
+    }
+    setPrintConfig((prev) => ({ ...prev, adjustedPrice: Math.max(0, next) }));
+  };
+
+  const handleConfirmPrint = () => {
+    if (!printConfig.materialId) {
+      toast.error("Por favor selecciona un material del inventario.");
+      return;
+    }
+    const material = inventory.find((i) => i.id === printConfig.materialId);
+    if (!material) return;
+
+    const pesoNecesario = parseFloat(inputs.peso) || 0;
+
+    const executePrint = () => {
+      const newInventory = inventory.map((item) => {
+        if (item.id === printConfig.materialId) {
+          return { ...item, stock: item.stock - pesoNecesario };
+        }
+        return item;
+      });
+      setInventory(newInventory);
+
+      const desc = printConfig.description
+        ? `${printConfig.description} - ${inputs.peso}g ${material.tipo} ${material.color}`
+        : `Impresión: ${inputs.peso}g de ${material.tipo} ${material.color}`;
+
+      const newMovement = {
+        id: crypto.randomUUID(),
+        fecha: `${new Date().toLocaleDateString("es-AR", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })} - ${new Date().toLocaleTimeString("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}`,
+        tipo: "INGRESO",
+        monto: printConfig.adjustedPrice,
+        descripcion: desc,
+        nombre: printConfig.clientName || "",
+        stockRestoration: {
+          materialId: material.id,
+          quantity: pesoNecesario,
+        },
+      };
+      setCashbook([newMovement, ...cashbook]);
+
+      setShowPrintModal(false);
+      toast.dismiss();
+      setTimeout(
+        () =>
+          toast.success(
+            "¡Registrado exitosamente! Stock actualizado e ingreso en caja."
+          ),
+        100
+      );
+      // Reset Data
+      setInputs({
+        tiempo_horas: "",
+        tiempo_minutos: "",
+        peso: "",
+        costo_insumos: 0,
+      });
+      setResult(null);
+    };
+
+    if (material.stock < pesoNecesario) {
+      toast.error(
+        ({ closeToast }) => (
+          <ConfirmToast
+            message={`El stock actual (${material.stock}g) es menor al necesario (${pesoNecesario}g). ¿Continuar igual?`}
+            closeToast={closeToast}
+            onConfirm={executePrint}
+          />
+        ),
+        {
+          autoClose: false,
+          closeOnClick: false,
+          icon: false,
+        }
+      );
+      return;
+    }
+
+    executePrint();
+  };
+
+  const handleSavePreset = () => {
+    if (!presetName.trim()) return;
+
+    if (editingPresetId) {
+      // Update existing
+      const updatedPresets = presets.map((p) =>
+        p.id === editingPresetId
+          ? { ...p, name: presetName, config: { ...config } }
+          : p
+      );
+      setPresets(updatedPresets);
+      toast.success("Preset actualizado correctamente");
+    } else {
+      // Create new
+      const newPreset = {
+        id: crypto.randomUUID(),
+        name: presetName,
+        config: { ...config },
+      };
+      setPresets([...presets, newPreset]);
+      toast.success("Preset guardado correctamente");
+    }
+    setPresetName("");
+    setEditingPresetId(null);
+  };
+
+  const handleEditPreset = (preset) => {
+    setEditingPresetId(preset.id);
+    setPresetName(preset.name);
+    setConfig(preset.config);
+  };
+
+  const handleCancelEditPreset = () => {
+    setEditingPresetId(null);
+    setPresetName("");
+  };
+
+  const handleResetInputs = () => {
+    setInputs({
+      tiempo_horas: "",
+      tiempo_minutos: "",
+      peso: "",
+      costo_insumos: 0,
+    });
+    setResult(null);
+  };
+
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData("dragIndex", index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault(); // Necessary to allow dropping
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    const dragIndex = Number(e.dataTransfer.getData("dragIndex"));
+    if (dragIndex === dropIndex) return;
+
+    const newPresets = [...presets];
+    const [draggedItem] = newPresets.splice(dragIndex, 1);
+    newPresets.splice(dropIndex, 0, draggedItem);
+
+    setPresets(newPresets);
+  };
+
+  const handleLoadPreset = (id) => {
+    if (!id) return;
+    const preset = presets.find((p) => p.id === id);
+    if (preset) {
+      setConfig(preset.config);
+    }
+  };
+
+  const handleDeletePreset = (id) => {
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          message="¿Eliminar este preset?"
+          closeToast={closeToast}
+          onConfirm={() => {
+            setPresets(presets.filter((p) => p.id !== id));
+            toast.dismiss();
+            setTimeout(() => toast.info("Preset eliminado"), 100);
+          }}
+        />
+      ),
+      {
+        autoClose: false,
+        closeOnClick: false,
+        icon: false,
+      }
+    );
+  };
+
+  return (
+    <div className="container" style={{ position: "relative" }}>
+      {/* Print Modal Overlay */}
+      {showPrintModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "450px",
+              margin: "1rem",
+              background: "var(--surface)",
+            }}
+          >
+            <h3 className="section-title">Confirmar Impresión</h3>
+
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label className="label">
+                1. Seleccionar Material (Inventario)
+              </label>
+              <select
+                className="input"
+                value={printConfig.materialId}
+                onChange={(e) =>
+                  setPrintConfig({ ...printConfig, materialId: e.target.value })
+                }
+              >
+                <option value="">-- Selecciona un filamento --</option>
+                {inventory.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.tipo} {item.marca} - {item.color} ({item.stock}g
+                    disp.)
+                  </option>
+                ))}
+              </select>
+              {inputs.peso && (
+                <div
+                  style={{
+                    fontSize: "0.8rem",
+                    color: "var(--text-secondary)",
+                    marginTop: "0.5rem",
+                  }}
+                >
+                  Se descontarán <strong>{inputs.peso}g</strong> del stock
+                  seleccionado.
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: "2rem" }}>
+              <label className="label">
+                2. Ajustar Precio Final (Smart Rounding)
+              </label>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  background: "var(--background)",
+                  padding: "1rem",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    fontSize: "2rem",
+                    fontWeight: "bold",
+                    textAlign: "center",
+                  }}
+                >
+                  ${printConfig.adjustedPrice.toFixed(0)}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.25rem",
+                  }}
+                >
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSmartRound("up")}
+                    title="Redondear arriba (+100)"
+                    style={{ padding: "0.25rem 0.5rem" }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => handleSmartRound("down")}
+                    title="Redondear abajo (-100)"
+                    style={{ padding: "0.25rem 0.5rem" }}
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+              <div
+                style={{
+                  fontSize: "0.8rem",
+                  color: "var(--text-secondary)",
+                  marginTop: "0.5rem",
+                }}
+              >
+                Este monto se ingresará en el <strong>Libro de Caja</strong>.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowPrintModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmPrint}>
+                Aceptar y Registrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid-2">
+        {/* Columna Izquierda: Inputs */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+          {/* Tarjeta de Configuración (Gastos Fijos) */}
+          <div className="card">
+            <div
+              className="section-title"
+              style={{ justifyContent: "space-between" }}
+            >
+              <span>
+                <Settings size={20} /> Configuración / Gastos Fijos
+              </span>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowPresetsManager(!showPresetsManager)}
+                style={{ fontSize: "0.875rem" }}
+              >
+                {showPresetsManager ? "Ocultar Presets" : "Editar Presets"}
+              </button>
+            </div>
+
+            {/* PRESET MANAGER */}
+            {showPresetsManager && (
+              <div
+                style={{
+                  marginBottom: "1.5rem",
+                  borderBottom: "1px solid var(--border)",
+                  paddingBottom: "1rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <input
+                    className="input"
+                    placeholder="Nombre nuevo preset (ej: PETG Alta Calidad)"
+                    value={presetName}
+                    onChange={(e) => setPresetName(e.target.value)}
+                  />
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSavePreset}
+                    title={
+                      editingPresetId ? "Actualizar Preset" : "Guardar Preset"
+                    }
+                  >
+                    {editingPresetId ? (
+                      <RefreshCw size={18} />
+                    ) : (
+                      <Save size={18} />
+                    )}
+                  </button>
+                  {editingPresetId && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleCancelEditPreset}
+                      title="Cancelar Edición"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+
+                {presets.length > 0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    <label className="label">Presets Guardados:</label>
+                    {presets.map((p, index) => (
+                      <div
+                        key={p.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, index)}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          background: "var(--background)",
+                          padding: "0.5rem",
+                          borderRadius: "var(--radius)",
+                          cursor: "move",
+                          border: "1px solid transparent",
+                        }}
+                        onDragEnter={(e) => {
+                          e.currentTarget.style.border =
+                            "1px dashed var(--primary)";
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.style.border =
+                            "1px solid transparent";
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem",
+                          }}
+                        >
+                          <GripVertical
+                            size={16}
+                            style={{
+                              color: "var(--text-secondary)",
+                              cursor: "grab",
+                            }}
+                          />
+                          <span style={{ fontSize: "0.9rem" }}>{p.name}</span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            className="btn-icon"
+                            style={{ color: "var(--text-secondary)" }}
+                            onClick={() => handleEditPreset(p)}
+                            title="Editar"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="btn-icon"
+                            style={{ color: "var(--danger)" }}
+                            onClick={() => handleDeletePreset(p.id)}
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PRESET LOADER (Always Visible if not managing) */}
+            {!showPresetsManager && (
+              <div style={{ marginBottom: "1rem" }}>
+                <select
+                  className="input"
+                  onChange={(e) => handleLoadPreset(e.target.value)}
+                  style={{ width: "100%", cursor: "pointer" }}
+                  defaultValue=""
+                >
+                  <option value="" disabled>
+                    -- Cargar Preset Rápido --
+                  </option>
+                  {presets.length === 0 ? (
+                    <option disabled>No hay presets guardados</option>
+                  ) : (
+                    presets.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            )}
+
+            {/* ALWAYS EDITABLE CONFIG GRID */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                gap: "0.5rem",
+              }}
+            >
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  background: "var(--surface-hover)",
+                  padding: "0.75rem",
+                  borderRadius: "var(--radius)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <label className="label" style={{ margin: 0 }}>
+                    Filamento / Material
+                  </label>
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <select
+                    className="input"
+                    value={selectedMaterialId}
+                    style={{ fontSize: "0.9rem", padding: "0.35rem" }}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedMaterialId(id);
+                      if (id) {
+                        // Find price in inventory
+                        const mat = inventory.find((i) => i.id === id);
+                        if (mat) {
+                          setConfig({
+                            ...config,
+                            precio_filamento: mat.precio,
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <option value="">-- Personalizado --</option>
+                    {inventory.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.tipo} {i.marca} ({i.color}) - {i.stock}g
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ position: "relative" }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.8rem",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      className="input"
+                      style={{
+                        paddingLeft: "1.5rem",
+                        paddingRight: "2rem",
+                        fontSize: "0.9rem",
+                        paddingBlock: "0.35rem",
+                      }}
+                      value={config.precio_filamento}
+                      onChange={(e) => {
+                        setConfig({
+                          ...config,
+                          precio_filamento: parseFloat(e.target.value),
+                        });
+                        setSelectedMaterialId(""); // Clear selection on manual edit
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: "absolute",
+                        right: "0.5rem",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.7rem",
+                        pointerEvents: "none",
+                      }}
+                    >
+                      /kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <Zap size={14} /> Energía ($/kWh)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.precio_kwh}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      precio_kwh: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <DollarSign size={14} /> Consumo (W)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.consumo_watts}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      consumo_watts: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <AlertCircle size={14} /> Desgaste ($/h)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.desgaste_hora}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      desgaste_hora: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">
+                  <Scale size={14} /> Margen Error (%)
+                </span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  value={config.margen_error}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      margen_error: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+              <div className="input-card-compact">
+                <span className="label-compact">Multiplicador (x)</span>
+                <input
+                  type="number"
+                  className="input-compact-transparent"
+                  step="0.1"
+                  value={config.multiplicador_ganancia}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      multiplicador_ganancia: parseFloat(e.target.value),
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Tarjeta de Pieza (Inputs Principales) */}
+          <div className="card">
+            <div
+              className="section-title"
+              style={{ justifyContent: "space-between" }}
+            >
+              <span>
+                <RefreshCw size={20} /> Datos de la Pieza
+              </span>
+              <button
+                className="btn btn-ghost"
+                onClick={handleResetInputs}
+                title="Limpiar datos"
+                style={{ color: "var(--danger)" }}
+              >
+                <Eraser size={18} />
+              </button>
+            </div>
+
+            <div className="input-group">
+              <label className="label">
+                <Clock
+                  size={16}
+                  style={{ display: "inline", verticalAlign: "text-bottom" }}
+                />{" "}
+                Tiempo de Impresión
+              </label>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    className="input"
+                    placeholder="Horas"
+                    value={inputs.tiempo_horas}
+                    onChange={(e) =>
+                      setInputs({ ...inputs, tiempo_horas: e.target.value })
+                    }
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Horas
+                  </span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input
+                    type="number"
+                    className="input"
+                    placeholder="Minutos"
+                    value={inputs.tiempo_minutos}
+                    onChange={(e) =>
+                      setInputs({ ...inputs, tiempo_minutos: e.target.value })
+                    }
+                  />
+                  <span
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Minutos
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label className="label">
+                <Scale
+                  size={16}
+                  style={{ display: "inline", verticalAlign: "text-bottom" }}
+                />{" "}
+                Peso (Gramos)
+              </label>
+              <input
+                type="number"
+                className="input"
+                placeholder="Ej: 150"
+                value={inputs.peso}
+                onChange={(e) => setInputs({ ...inputs, peso: e.target.value })}
+              />
+            </div>
+
+            <div className="input-group">
+              <label className="label">
+                <DollarSign
+                  size={16}
+                  style={{ display: "inline", verticalAlign: "text-bottom" }}
+                />{" "}
+                Costo Extra (Insumos)
+              </label>
+              <input
+                type="number"
+                className="input"
+                placeholder="Ej: 500 (Tornillos, Imanes)"
+                value={inputs.costo_insumos}
+                onChange={(e) =>
+                  setInputs({ ...inputs, costo_insumos: e.target.value })
+                }
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Columna Derecha: Resultados */}
+        <div style={{ height: "100%" }}>
+          {result && (
+            <div
+              className="card card-result"
+              style={{
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: "1rem",
+              }}
+            >
+              {/* 1. TITLE */}
+              <div
+                className="section-title"
+                style={{ color: "var(--primary)", marginBottom: 0 }}
+              >
+                Resumen de Costos
+              </div>
+
+              {/* 2. COST BREAKDOWN */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.25rem",
+                }}
+              >
+                <ResultRow
+                  label="Material"
+                  value={result.costo_material}
+                  icon={<Package size={16} />}
+                />
+                <ResultRow
+                  label="Energía"
+                  value={result.costo_energia}
+                  icon={<Zap size={16} />}
+                />
+                <ResultRow
+                  label="Desgaste Máquina"
+                  value={result.costo_desgaste}
+                  icon={<Settings size={16} />}
+                />
+                <ResultRow
+                  label="Insumos Extra"
+                  value={result.insumos}
+                  icon={<DollarSign size={16} />}
+                />
+                <ResultRow
+                  label={`Margen Error (${config.margen_error}%)`}
+                  value={result.costo_error}
+                  icon={<AlertCircle size={16} />}
+                  color="var(--danger)"
+                />
+
+                <div
+                  style={{
+                    height: "1px",
+                    background: "var(--border)",
+                    margin: "0.5rem 0",
+                  }}
+                ></div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    Costo Total Real
+                  </span>
+                  <span style={{ fontWeight: 700, fontSize: "1.25rem" }}>
+                    ${result.costo_total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. PRICE CARD */}
+              <div className="price-card">
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <span style={{ opacity: 0.9 }}>Precio Sugerido</span>
+                  <span className="price-badge">
+                    x{config.multiplicador_ganancia}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "2.5rem",
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  ${result.precio_venta.toFixed(2)}
+                </div>
+                <div
+                  style={{
+                    marginTop: "0.5rem",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  Ganancia Neta: ${result.ganancia_neta.toFixed(2)}
+                </div>
+              </div>
+
+              {/* 4. ACTION BUTTON */}
+              <button
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%)",
+                  borderRadius: "var(--radius)",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "1rem",
+                  fontSize: "1.75rem",
+                  fontWeight: 600,
+                  color: "white",
+                  boxShadow: "0 10px 15px -3px rgba(70, 229, 123, 0.3)",
+                  width: "100%",
+                }}
+                onClick={handleOpenPrint}
+              >
+                Imprimir
+              </button>
+            </div>
+          )}
+          {!result && (
+            <div
+              className="card"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                padding: "3rem 1rem",
+                color: "var(--text-light)",
+                flexDirection: "column",
+                gap: "1rem",
+              }}
+            >
+              <CalculatorIcon size={48} opacity={0.2} />
+              <p>Ingresa los datos para ver el presupuesto</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* PRINT CONFIRMATION MODAL */}
+      {showPrintModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            onClick: (e) => {
+              if (e.target === e.currentTarget) setShowPrintModal(false);
+            },
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              padding: "1.5rem",
+              background: "var(--background)",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              border: "1px solid var(--border)",
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <h3
+              style={{
+                marginTop: 0,
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              <Save size={20} className="text-primary" />
+              Confirmar Venta
+            </h3>
+
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1rem",
+                marginBottom: "1.5rem",
+              }}
+            >
+              {/* Client Name Input */}
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">
+                  <User size={14} style={{ marginRight: "4px" }} />
+                  Nombre del Cliente
+                </label>
+                <input
+                  className="input"
+                  placeholder="Opcional (Ej: Juan Perez)"
+                  value={printConfig.clientName || ""}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      clientName: e.target.value,
+                    })
+                  }
+                  autoFocus
+                />
+              </div>
+
+              {/* Description Input */}
+              <div className="input-group" style={{ margin: 0 }}>
+                <label className="label">
+                  <FileText size={14} style={{ marginRight: "4px" }} />
+                  Descripción Extra
+                </label>
+                <input
+                  className="input"
+                  placeholder="Ej: Pieza decorativa"
+                  value={printConfig.description || ""}
+                  onChange={(e) =>
+                    setPrintConfig({
+                      ...printConfig,
+                      description: e.target.value,
+                    })
+                  }
+                />
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-secondary)",
+                    marginTop: "0.25rem",
+                  }}
+                >
+                  Se guardará como:{" "}
+                  {printConfig.description
+                    ? `${printConfig.description} - ...`
+                    : "Impresión: ..."}
+                </span>
+              </div>
+
+              {/* Price Preview */}
+              <div
+                style={{
+                  background: "var(--surface)",
+                  padding: "1rem",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--border)",
+                  marginTop: "0.5rem",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
+                    fontSize: "0.9rem",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <span>Precio Base:</span>
+                  <span>${printConfig.adjustedPrice.toFixed(2)}</span>
+                </div>
+                {/* Smart Rounding Controls could go here if needed, but keeping simple */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: "0.5rem",
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>Precio Final:</span>
+                  <span
+                    style={{
+                      fontSize: "1.5rem",
+                      fontWeight: 800,
+                      color: "var(--success)",
+                    }}
+                  >
+                    ${printConfig.adjustedPrice.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "1rem",
+              }}
+            >
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowPrintModal(false)}
+              >
+                Cancelar
+              </button>
+              <button className="btn btn-primary" onClick={handleConfirmPrint}>
+                Confirmar e Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultRow({ label, value, icon, color }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          color: color || "var(--text-secondary)",
+        }}
+      >
+        {icon}
+        <span>{label}</span>
+      </div>
+      <span style={{ fontWeight: 600, color: "var(--text-main)" }}>
+        ${value.toFixed(2)}
+      </span>
+    </div>
+  );
+}

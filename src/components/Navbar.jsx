@@ -8,11 +8,14 @@ import {
   Sun,
   Moon,
   Activity,
+  LogOut,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 export function Navbar({ currentTab, onTabChange }) {
   const { theme, toggleTheme } = useTheme();
+  const { signOut } = useAuth();
 
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: Activity },
@@ -96,6 +99,19 @@ export function Navbar({ currentTab, onTabChange }) {
             }
           >
             {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          <button
+            onClick={signOut}
+            className="btn btn-ghost"
+            style={{
+              padding: "0.5rem",
+              borderRadius: "50%",
+              color: "var(--danger)",
+            }}
+            title="Cerrar Sesión"
+          >
+            <LogOut size={20} />
           </button>
         </div>
       </div>

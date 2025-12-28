@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import {
   ArrowUpCircle,
   ArrowDownCircle,
@@ -10,6 +11,7 @@ import {
   TrendingDown,
   Trash2,
   Pencil,
+  Loader2,
 } from "lucide-react";
 
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
@@ -53,8 +55,13 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
 );
 
 export function Cashbook() {
-  const [movements, setMovements] = useLocalStorage("limonero_cashbook", []);
-  const [inventory, setInventory] = useLocalStorage("limonero_inventory", []);
+  const [movements, setMovements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // Inventory is needed for restoration logic, but we might check it on demand or load it.
+  // Loading all inventory just for delete might be overkill but simple.
+  // Actually, we only need to update it.
+
+  const { user } = useAuth();
   const [newMovement, setNewMovement] = useState({
     tipo: "INGRESO",
     monto: "",
@@ -64,49 +71,96 @@ export function Cashbook() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  const handleSave = () => {
+  useEffect(() => {
+    fetchMovements();
+  }, []);
+
+  const fetchMovements = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("cashbook")
+        .select("*")
+        .order("fecha", { ascending: false }); // Newest first
+
+      if (error) throw error;
+      setMovements(data || []);
+    } catch (error) {
+      toast.error("Error al cargar caja: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!newMovement.monto || !newMovement.descripcion) return;
 
-    if (editingId) {
-      // Editar existente
-      const updatedMovements = movements.map((m) => {
-        if (m.id === editingId) {
-          return {
-            ...m,
-            ...newMovement,
-            monto: parseFloat(newMovement.monto),
-          };
-        }
-        return m;
-      });
-      setMovements(updatedMovements);
-      setEditingId(null);
-    } else {
-      // Crear nuevo
-      setMovements([
-        {
-          ...newMovement,
-          id: crypto.randomUUID(),
-          fecha: `${new Date().toLocaleDateString("es-AR", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          })} - ${new Date().toLocaleTimeString("es-AR", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })}`,
-          monto: parseFloat(newMovement.monto),
-        },
-        ...movements,
-      ]);
-    }
+    try {
+      const payload = {
+        user_id: user.id,
+        tipo: newMovement.tipo,
+        monto: parseFloat(newMovement.monto),
+        descripcion: newMovement.descripcion,
+        nombre: newMovement.nombre || "",
+        // fecha will default to now() on insert if not provided
+        // or we can provide it explicitly.
+      };
 
-    setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
-    setIsAdding(false);
-    toast.success(
-      editingId ? "Movimiento actualizado" : "Movimiento registrado"
-    );
+      if (!editingId) {
+        // Create new
+        payload.fecha = new Date().toISOString();
+      }
+
+      let data, error;
+
+      if (editingId) {
+        // Edit
+        const { error: updateError } = await supabase
+          .from("cashbook")
+          .update({
+            tipo: payload.tipo,
+            monto: payload.monto,
+            descripcion: payload.descripcion,
+            nombre: payload.nombre,
+          })
+          .eq("id", editingId);
+        error = updateError;
+
+        if (!error) {
+          setMovements((prev) =>
+            prev.map((m) => (m.id === editingId ? { ...m, ...payload } : m))
+          );
+        }
+      } else {
+        // Insert
+        const { data: insertData, error: insertError } = await supabase
+          .from("cashbook")
+          .insert([payload])
+          .select();
+        data = insertData;
+        error = insertError;
+
+        if (!error && data) {
+          setMovements([data[0], ...movements]);
+        }
+      }
+
+      if (error) throw error;
+
+      setNewMovement({
+        tipo: "INGRESO",
+        monto: "",
+        descripcion: "",
+        nombre: "",
+      });
+      setIsAdding(false);
+      setEditingId(null);
+      toast.success(
+        editingId ? "Movimiento actualizado" : "Movimiento registrado"
+      );
+    } catch (error) {
+      toast.error("Error al guardar: " + error.message);
+    }
   };
 
   const handleEdit = (mov) => {
@@ -126,38 +180,51 @@ export function Cashbook() {
         <ConfirmToast
           message="¿Estás seguro de eliminar este registro?"
           closeToast={closeToast}
-          onConfirm={() => {
-            const mov = movements.find((m) => m.id === id);
+          onConfirm={async () => {
+            try {
+              // 1. Get movement to check metadata
+              // We likely have it in state 'movements', but fetching ensures safety
+              const mov = movements.find((m) => m.id === id);
 
-            // Stock Restoration Logic
-            if (mov && mov.stockRestoration) {
-              const { materialId, quantity } = mov.stockRestoration;
-              const materialIndex = inventory.findIndex(
-                (i) => i.id === materialId
-              );
+              if (mov && mov.metadata && mov.metadata.stockRestoration) {
+                const { materialId, quantity } = mov.metadata.stockRestoration;
 
-              if (materialIndex !== -1) {
-                const newInventory = [...inventory];
-                newInventory[materialIndex] = {
-                  ...newInventory[materialIndex],
-                  stock: newInventory[materialIndex].stock + quantity,
-                };
-                setInventory(newInventory);
-                toast.info(`Stock restaurado: +${quantity}g al inventario`);
+                // 2. Restore Stock
+                // Fetch current stock first (concurrency safe-ish)
+                const { data: matData, error: matError } = await supabase
+                  .from("inventory")
+                  .select("stock")
+                  .eq("id", materialId)
+                  .single();
+
+                if (!matError && matData) {
+                  const newStock = (matData.stock || 0) + quantity;
+                  await supabase
+                    .from("inventory")
+                    .update({ stock: newStock })
+                    .eq("id", materialId);
+
+                  toast.info(`Stock restaurado: +${quantity}g al inventario`);
+                }
               }
-            }
 
-            setMovements(movements.filter((m) => m.id !== id));
-            toast.dismiss();
-            setTimeout(() => toast.error("Movimiento eliminado"), 100);
+              // 3. Delete Movement
+              const { error } = await supabase
+                .from("cashbook")
+                .delete()
+                .eq("id", id);
+              if (error) throw error;
+
+              setMovements((prev) => prev.filter((m) => m.id !== id));
+              toast.dismiss();
+              setTimeout(() => toast.error("Movimiento eliminado"), 100);
+            } catch (error) {
+              toast.error("Error al eliminar: " + error.message);
+            }
           }}
         />
       ),
-      {
-        autoClose: false,
-        closeOnClick: false,
-        icon: false,
-      }
+      { autoClose: false, closeOnClick: false, icon: false }
     );
   };
 
@@ -174,6 +241,13 @@ export function Cashbook() {
     .filter((m) => m.tipo === "EGRESO")
     .reduce((acc, curr) => acc + curr.monto, 0);
   const balance = totalIngresos - totalEgresos;
+
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <Loader2 className="animate-spin" /> Cargando movimientos...
+      </div>
+    );
 
   return (
     <div className="container">
@@ -408,7 +482,16 @@ export function Cashbook() {
                         fontSize: "0.875rem",
                       }}
                     >
-                      {mov.fecha}
+                      {new Date(mov.fecha || mov.created_at).toLocaleString(
+                        "es-AR",
+                        {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }
+                      )}
                     </td>
                     <td style={{ fontWeight: 600 }}>{mov.nombre || "-"}</td>
                     <td style={{ fontWeight: 500 }}>{mov.descripcion}</td>

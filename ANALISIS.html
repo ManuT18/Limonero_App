@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Proyecto: El Limonero Web</title>
+    <style>
+        :root {
+            --primary: #9dca00;
+            --primary-dark: #7a9c00;
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --text: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --border: #404040;
+            --code-bg: #111;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 2rem;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin: 0;
+        }
+        h2 {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            color: var(--primary);
+            margin-top: 3rem;
+        }
+        h3 {
+            color: var(--text);
+            margin-top: 1.5rem;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        code {
+            font-family: 'Consolas', monospace;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: var(--primary);
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .badge-success { background: #22c55e; color: #fff; }
+        .badge-warning { background: #eab308; color: #000; }
+        .badge-error { background: #ef4444; color: #fff; }
+
+        /* Mermaid placeholder style since we can't render JS directly easily in simple HTML without CDN */
+        .diagram {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .flow-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .flow-step .number {
+            background: var(--primary);
+            color: #000;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+    </style>
+     <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Análisis Técnico: El Limonero Web</h1>
+            <p>Reporte detallado de arquitectura, calidad de código y flujos.</p>
+        </header>
+
+        <section id="clean-code">
+            <h2>1. Análisis Clean Code</h2>
+            <div class="card">
+                <h3>Evaluación General</h3>
+                <p>El proyecto mantiene un nivel <strong>medio-alto</strong> de adhesión a Clean Code, especialmente considerando su escala y naturaleza de Single Page Application (SPA) sin backend complejo.</p>
+
+                <h3>Puntos Fuertes <span class="badge badge-success">Bien</span></h3>
+                <ul>
+                    <li><strong>Nombrado de Variables:</strong> Las variables tienen nombres semánticos y claros (<code>inputs</code>, <code>config</code>, <code>inventory</code>, <code>handleCalculate</code>). Se entiende qué hacen sin comentarios excesivos.</li>
+                    <li><strong>Uso de Hooks Personalizados:</strong> La abstracción de la persistencia en <code>useLocalStorage</code> es excelente. Limpia los componentes de la lógica de <code>window.localStorage</code> y `JSON.parse/stringify`.</li>
+                    <li><strong>Funciones Pequeñas:</strong> En general, los handlers (ej. <code>handleDelete</code>, <code>handleEdit</code>) son concisos y tienen una única responsabilidad visible.</li>
+                    <li><strong>Estructura de Componentes:</strong> Cada vista principal (Calculadora, Inventario, Caja) está separada en su propio archivo, facilitando la navegación.</li>
+                </ul>
+
+                <h3>Áreas de Mejora <span class="badge badge-warning">Mejorable</span></h3>
+                <ul>
+                    <li><strong>Tamaño de Calculator.jsx:</strong> Este archivo es bastante grande (+1000 líneas). Contiene lógica de cálculo, gestión de estado de UI, modales, gestión de presets y renderizado. Sería ideal extraer sub-componentes (ej. <i>ConfigForm</i>, <i>ResultCard</i>, <i>PresetsManager</i>).</li>
+                    <li><strong>Hardcoded Strings:</strong> Hay cadenas de texto dispersas para las claves de localStorage (<code>"limonero_config_v3"</code>, etc.). Sería mejor tener un archivo de constantes <code>keys.js</code>.</li>
+                    <li><strong>Lógica en Render:</strong> Hay cierta lógica de presentación compleja dentro del JSX (ternarios anidados o mapeos grandes) que podría extraerse a componentes auxiliares para mejorar la legibilidad del retorno principal.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="solid">
+            <h2>2. Análisis Principios S.O.L.I.D.</h2>
+            
+            <div class="card">
+                <h3>S - Single Responsibility Principle (SRP)</h3>
+                <p><strong>Estado: Parcialmente Cumplido.</strong></p>
+                <p><code>Inventory.jsx</code> y <code>Cashbook.jsx</code> cumplen bien: se encargan solo de gestionar sus respectivas entidades. Sin embargo, <strong><code>Calculator.jsx</code> tiene múltiples responsabilidades</strong>: es Calculadora, pero también es Gestor de Presets, y también actúa como punto de entrada para crear movimientos de Caja (Print Modal). Idealmente, la lógica de creación de movimientos debería estar desacoplada o gestionada por un servicio compartido.</p>
+            </div>
+
+            <div class="card">
+                <h3>O - Open/Closed Principle (OCP)</h3>
+                <p><strong>Estado: Cumplido (Contexto React).</strong></p>
+                <p>Los componentes están diseñados para ser modificados mediante props y estado, sin necesidad de alterar su código fuente base para cambios de configuración (gracias al objeto <code>config</code> dinámico). El sistema de <code>Themes</code> (aunque básico) permite extensión de estilos sin reescribir CSS base.</p>
+            </div>
+
+            <div class="card">
+                <h3>L - Liskov Substitution Principle (LSP)</h3>
+                <p><strong>Estado: No Aplica (Composición vs Herencia).</strong></p>
+                <p>Al ser una arquitectura basada en Composición de React (Hooks y Componentes Funcionales), no hay herencia de clases clásica. El principio se traduce en que los componentes (como inputs o tarjetas) se comportan de manera predecible según sus props, lo cual se cumple.</p>
+            </div>
+
+            <div class="card">
+                <h3>I - Interface Segregation Principle (ISP)</h3>
+                <p><strong>Estado: Cumplido.</strong></p>
+                <p>Los componentes no reciben props gigantescas que no usan. Por ejemplo, <code>inputs</code> se pasa o se desestructura solo lo necesario. No hay "Mega-Contextos" que obliguen a componentes pequeños a conocer toda la aplicación.</p>
+            </div>
+
+            <div class="card">
+                <h3>D - Dependency Inversion Principle (DIP)</h3>
+                <p><strong>Estado: Parcialmente Cumplido.</strong></p>
+                <p>Los componentes dependen de una abstracción para los datos (<code>useLocalStorage</code>), no llaman a <code>localStorage</code> directamente. Esto es bueno. Si mañana quisieras cambiar a una base de datos real (Supabase), solo tendrías que reescribir el hook <code>useLocalStorage</code> (o crear un <code>useDatabase</code>) y los componentes apenas cambiarían.</p>
+            </div>
+        </section>
+
+        <section id="flow">
+            <h2>3. Flujo del Programa</h2>
+            <p>La aplicación sigue un flujo unidireccional típico de React, apoyado en persistencia local para mantener el estado entre recargas.</p>
+
+            <div class="card">
+                <h3>Flujo Macro (Aplicación)</h3>
+                <div class="diagram">
+                    <pre class="mermaid">
+graph LR
+    User[Usuario] --> Main[main.jsx]
+    Main --> App[App.jsx]
+    
+    subgraph "Router Simplificado (Tabs)"
+        App -->|Tab: Dashboard| Dashboard[Dashboard.jsx]
+        App -->|Tab: Calculator| Calculator[Calculator.jsx]
+        App -->|Tab: Inventory| Inventory[Inventory.jsx]
+        App -->|Tab: Cashbook| Cashbook[Cashbook.jsx]
+        App -->|Tab: Settings| Settings[Settings.jsx]
+    end
+
+    subgraph "Persistencia (Data Layer)"
+        Calculator <--> LS[(useLocalStorage)]
+        Inventory <--> LS
+        Cashbook <--> LS
+        Settings <--> LS
+        Dashboard <--> LS
+    end
+                    </pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Flujo Crítico: Proceso de Impresión (Venta)</h3>
+                <p>Este es el flujo más complejo donde interactúan varios componentes lógicos.</p>
+                
+                <div class="flow-step">
+                    <div class="number">1</div>
+                    <div>
+                        <strong>Configuración & Input:</strong> El usuario ingresa Tiempo y Peso en <code>Calculator</code>. El sistema calcula el Costo y Precio Sugerido basándose en <code>config</code> y <code>inventory</code> (selección de material).
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="number">2</div>
+                    <div>
+                        <strong>Confirmación (Modal):</strong> Al dar clic en "Imprimir", se abre el Modal. El usuario confirma precio final e ingresa datos del cliente (Opcional).
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="number">3</div>
+                    <div>
+                        <strong>Actualización Atómica:</strong> Al confirmar `handleConfirmPrint`:
+                        <ul>
+                            <li>Se <strong>descuenta</strong> el stock del material en <code>Inventory</code>.</li>
+                            <li>Se <strong>crea</strong> un registro de "Ingreso" en <code>Cashbook</code> incluyendo metadatos de restauración (Material ID + Cantidad).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+             <div class="card">
+                <h3>Flujo Crítico: Borrado Inteligente (Restauración)</h3>
+                <div class="diagram">
+                    <pre class="mermaid">
+sequenceDiagram
+    participant User
+    participant Cashbook
+    participant Inventory
+    
+    User->>Cashbook: Click Eliminar Movimiento (ID)
+    Cashbook->>User: Toast "¿Estás seguro?"
+    User->>Cashbook: Confirmar
+    
+    rect rgb(30, 30, 30)
+        note right of Cashbook: Análisis de Metadatos
+        Cashbook->>Cashbook: ¿Tiene `stockRestoration`?
+        alt SI tiene metadata
+            Cashbook->>Inventory: Buscar Material (ID)
+            Inventory->>Inventory: Sumar Stock (+Gramos)
+            Cashbook->>User: Toast Info: "Stock Restaurado"
+        else NO tiene metadata
+            Cashbook->>User: (Solo borra el dinero)
+        end
+    end
+    
+    Cashbook->>Cashbook: Eliminar registro financiero
+    Cashbook->>User: Toast Error: "Movimiento Eliminado"
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="components">
+            <h2>4. Relación de Componentes</h2>
+            
+            <div class="card">
+                <h3>App.jsx (Orquestador)</h3>
+                <p>No contiene lógica de negocio. Su única función es mantener el estado <code>currentTab</code> y renderizar el componente hijo correspondiente. También provee el contexto global de UI (ThemeProvider, ToastContainer).</p>
+            </div>
+
+            <div class="card">
+                <h3>Calculator.jsx (Núcleo)</h3>
+                <p>Es el "cerebro" financiero.</p>
+                <ul>
+                    <li><strong>Dependencias:</strong> Lee <code>config</code> para costos fijos, lee <code>inventory</code> para calcular costos de material y escribe en <code>cashbook</code> al confirmar ventas.</li>
+                    <li><strong>Relaciones:</strong> Es quien más "conoce" al resto del sistema, violando ligeramente el desacoplamiento, pero necesario para integrar el flujo de trabajo.</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Inventory.jsx (Gestor de Recursos)</h3>
+                <p>Componente autónomo.</p>
+                <ul>
+                    <li>Gestiona el array de materiales.</li>
+                    <li>Provee los datos que <code>Calculator</code> consume (precio por kg, stock disponible).</li>
+                    <li>Es pasivo en la transacción de venta (es modificado por Calculator), pero activo en su propia gestión (CRUD).</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h3>Cashbook.jsx (Libro Mayor)</h3>
+                <p>Historial financiero.</p>
+                <ul>
+                    <li>Almacena movimientos inmutables (en teoría).</li>
+                    <li>Recientemente adquirió la capacidad de "hablar" con el Inventario para devolver stock si se borra una venta errónea (Relación inversa con Inventario).</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import React, { useMemo, useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -7,27 +8,52 @@ import {
   Package,
   Activity,
   PieChart,
+  Loader2,
 } from "lucide-react";
 
 export function Dashboard() {
-  const [inventory] = useLocalStorage("limonero_inventory", []);
-  const [cashbook] = useLocalStorage("limonero_cashbook", []);
+  const [inventory, setInventory] = useState([]);
+  const [cashbook, setCashbook] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Optimization: Fetch only needed columns
+        const { data: invData } = await supabase
+          .from("inventory")
+          .select("id, precio, stock");
+        const { data: cashData } = await supabase
+          .from("cashbook")
+          .select("tipo, monto, fecha");
+
+        if (invData) setInventory(invData);
+        if (cashData) setCashbook(cashData);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   // 1. Cálculos de KPIs
   const kpis = useMemo(() => {
     // Valor del Inventario
     const inventoryValue = inventory.reduce((total, item) => {
-      const precioPorGramo = item.precio / 1000; // precio es por KG
-      return total + precioPorGramo * item.stock;
+      const precioPorGramo = (item.precio || 0) / 1000; // precio es por KG
+      return total + precioPorGramo * (item.stock || 0);
     }, 0);
 
     // Balance Total
     const totalIncome = cashbook
       .filter((m) => m.tipo === "INGRESO")
-      .reduce((t, m) => t + m.monto, 0);
+      .reduce((t, m) => t + (m.monto || 0), 0);
     const totalExpense = cashbook
       .filter((m) => m.tipo === "EGRESO")
-      .reduce((t, m) => t + m.monto, 0);
+      .reduce((t, m) => t + (m.monto || 0), 0);
     const balance = totalIncome - totalExpense;
 
     // Movimientos del Mes Actual
@@ -35,26 +61,19 @@ export function Dashboard() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const currentMonthMoves = cashbook.filter((m) => {
-      const d = new Date(m.fecha); // Asumiendo formato compatible o ISO
-      // Nota: Si 'fecha' es LocaleString 'dd/mm/yyyy', el Date parse puede fallar.
-      // Mejor parsear manualmente si es necesario. En Cashbook se usa new Date().toLocaleString()
-      // Intentaremos parseo flexible o usar timestamp si estuviera disponible.
-      // Fallback simple: String matching para "M/YYYY" o confiar en Date parse
-      return true;
-    });
-    // *Mejora*: Para asegurar compatibilidad con toLocaleString(), parseamos simple:
     const monthlyIncome = cashbook.reduce((acc, m) => {
-      const parts = m.fecha.split(",")[0].split("/"); // dd/mm/yyyy
-      if (parts.length !== 3) return acc;
-      const month = parseInt(parts[1]) - 1;
-      const year = parseInt(parts[2]);
+      if (!m.fecha) return acc;
+
+      const d = new Date(m.fecha);
+      // Validar fecha válida
+      if (isNaN(d.getTime())) return acc;
+
       if (
-        month === currentMonth &&
-        year === currentYear &&
+        d.getMonth() === currentMonth &&
+        d.getFullYear() === currentYear &&
         m.tipo === "INGRESO"
       ) {
-        return acc + m.monto;
+        return acc + (m.monto || 0);
       }
       return acc;
     }, 0);
@@ -83,14 +102,16 @@ export function Dashboard() {
     }
 
     cashbook.forEach((m) => {
-      const parts = m.fecha.split(",")[0].split("/");
-      if (parts.length < 3) return;
-      const key = `${parseInt(parts[1])}/${parts[2]}`;
+      if (!m.fecha) return;
+      const d = new Date(m.fecha);
+      if (isNaN(d.getTime())) return;
 
+      const key = `${d.getMonth() + 1}/${d.getFullYear()}`;
       const monthData = months.find((x) => x.key === key);
+
       if (monthData) {
-        if (m.tipo === "INGRESO") monthData.income += m.monto;
-        if (m.tipo === "EGRESO") monthData.expense += m.monto;
+        if (m.tipo === "INGRESO") monthData.income += m.monto || 0;
+        if (m.tipo === "EGRESO") monthData.expense += m.monto || 0;
       }
     });
     return months;
@@ -100,6 +121,13 @@ export function Dashboard() {
     ...chartData.map((d) => Math.max(d.income, d.expense)),
     100
   );
+
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <Loader2 className="animate-spin" /> Cargando panel...
+      </div>
+    );
 
   return (
     <div className="container">
@@ -364,7 +392,8 @@ export function Dashboard() {
                     (cashbook.filter(
                       (m) =>
                         m.tipo === "INGRESO" &&
-                        m.fecha.includes(new Date().getFullYear())
+                        new Date(m.fecha).getFullYear() ===
+                          new Date().getFullYear()
                     ).length || 1)
                 )}
               </strong>

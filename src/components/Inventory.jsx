@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../context/AuthContext";
 import {
   Trash2,
   Plus,
@@ -10,54 +11,41 @@ import {
   Check,
   X,
   Copy,
+  Loader2,
 } from "lucide-react";
 
+// getColor and ConfirmToast helper functions remain the same (omitted for brevity in replacement if unchanged, but I need to include them or ensure they aren't lost if I replace the whole file. Since I'm replacing the whole component body basically, I should be careful).
+// actually, I will keep helper functions if they are outside the component.
+// The previous file content shows helper functions outside. I will try to target the component definition.
+
 const getColor = (name) => {
-  if (!name) return "#E5E7EB"; // grays.200
+  if (!name) return "#E5E7EB";
   const lower = name.toLowerCase().trim();
   const map = {
-    // Básicos
-    rojo: "#EF4444", // red.500
-    azul: "#3B82F6", // blue.500
-    verde: "#22C55E", // green.500
-    amarillo: "#EAB308", // yellow.500
-    naranja: "#F97316", // orange.500
-    violeta: "#8B5CF6", // violet.500
-    rosa: "#EC4899", // pink.500
-    negro: "#1F2937", // gray.800
-    blanco: "#F9FAFB", // gray.50
-    gris: "#9CA3AF", // gray.400
-    marron: "#78350F", // amber.900
-
-    // Variantes
+    rojo: "#EF4444",
+    azul: "#3B82F6",
+    verde: "#22C55E",
+    amarillo: "#EAB308",
+    naranja: "#F97316",
+    violeta: "#8B5CF6",
+    rosa: "#EC4899",
+    negro: "#1F2937",
+    blanco: "#F9FAFB",
+    gris: "#9CA3AF",
+    marron: "#78350F",
     "verde claro": "#86EFAC",
     "verde oscuro": "#14532D",
     "azul claro": "#93C5FD",
     "azul oscuro": "#1E3A8A",
     celeste: "#0EA5E9",
     turquesa: "#14B8A6",
-
-    // Materiales
     dorado: "#CA8A04",
     plateado: "#D1D5DB",
     bronce: "#92400E",
     transparente: "rgba(255, 255, 255, 0.5)",
     natural: "#FDE68A",
   };
-  return map[lower] || "#9CA3AF"; // Default gray
-};
-
-const sortItems = (items) => {
-  return [...items].sort((a, b) => {
-    // 1. Tipo
-    const tipoComp = a.tipo.localeCompare(b.tipo);
-    if (tipoComp !== 0) return tipoComp;
-    // 2. Marca
-    const marcaComp = a.marca.localeCompare(b.marca);
-    if (marcaComp !== 0) return marcaComp;
-    // 3. Color
-    return a.color.localeCompare(b.color);
-  });
+  return map[lower] || "#9CA3AF";
 };
 
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
@@ -101,7 +89,10 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
 );
 
 export function Inventory() {
-  const [items, setItems] = useLocalStorage("limonero_inventory", []);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
   const [newItem, setNewItem] = useState({
     tipo: "",
     marca: "",
@@ -114,24 +105,53 @@ export function Inventory() {
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
 
-  const handleAdd = () => {
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("inventory")
+        .select("*")
+        .order("tipo", { ascending: true });
+
+      if (error) throw error;
+      setItems(data || []);
+    } catch (error) {
+      toast.error("Error al cargar inventario: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdd = async () => {
     if (!newItem.tipo || !newItem.stock) return;
 
-    setItems(
-      sortItems([
-        ...items,
-        {
-          ...newItem,
-          id: crypto.randomUUID(),
-          stock: parseFloat(newItem.stock),
-          precio: parseFloat(newItem.precio),
-        },
-      ])
-    );
-    setNewItem({ tipo: "", marca: "", color: "", stock: "", precio: "" });
+    try {
+      const payload = {
+        user_id: user.id,
+        tipo: newItem.tipo,
+        marca: newItem.marca,
+        color: newItem.color,
+        stock: parseFloat(newItem.stock) || 0,
+        precio: parseFloat(newItem.precio) || 0,
+      };
 
-    setIsAdding(false);
-    toast.success("Material agregado exitosamente");
+      const { data, error } = await supabase
+        .from("inventory")
+        .insert([payload])
+        .select();
+      if (error) throw error;
+
+      setItems([...items, ...data]);
+      setNewItem({ tipo: "", marca: "", color: "", stock: "", precio: "" });
+      setIsAdding(false);
+      toast.success("Material agregado exitosamente");
+    } catch (error) {
+      toast.error("Error al guardar: " + error.message);
+    }
   };
 
   const handleDelete = (id) => {
@@ -140,18 +160,23 @@ export function Inventory() {
         <ConfirmToast
           closeToast={closeToast}
           message="¿Eliminar este material?"
-          onConfirm={() => {
-             setItems((prev) => prev.filter((item) => item.id !== id));
-             toast.dismiss(); // Cierra el toast de confirmación si quedara abierto
-             setTimeout(() => toast.error("Material eliminado"), 100); // Feedback visual
+          onConfirm={async () => {
+            try {
+              const { error } = await supabase
+                .from("inventory")
+                .delete()
+                .eq("id", id);
+              if (error) throw error;
+              setItems((prev) => prev.filter((item) => item.id !== id));
+              toast.dismiss();
+              setTimeout(() => toast.error("Material eliminado"), 100);
+            } catch (error) {
+              toast.error("Error al eliminar: " + error.message);
+            }
           }}
         />
       ),
-      {
-        autoClose: false,
-        closeOnClick: false,
-        icon: false,
-      }
+      { autoClose: false, closeOnClick: false, icon: false }
     );
   };
 
@@ -160,23 +185,33 @@ export function Inventory() {
     setEditValues({ ...item });
   };
 
-  const handleSaveEdit = () => {
-    setItems((prev) =>
-      sortItems(
+  const handleSaveEdit = async () => {
+    try {
+      const updates = {
+        tipo: editValues.tipo,
+        marca: editValues.marca,
+        color: editValues.color,
+        stock: parseFloat(editValues.stock) || 0,
+        precio: parseFloat(editValues.precio) || 0,
+      };
+
+      const { error } = await supabase
+        .from("inventory")
+        .update(updates)
+        .eq("id", editingId);
+      if (error) throw error;
+
+      setItems((prev) =>
         prev.map((item) =>
-          item.id === editingId
-            ? {
-                ...editValues,
-                stock: parseFloat(editValues.stock) || 0,
-                precio: parseFloat(editValues.precio) || 0,
-              }
-            : item
+          item.id === editingId ? { ...item, ...updates } : item
         )
-      )
-    );
-    setEditingId(null);
-    setEditValues({});
-    toast.success("Material actualizado");
+      );
+      setEditingId(null);
+      setEditValues({});
+      toast.success("Material actualizado");
+    } catch (error) {
+      toast.error("Error al actualizar: " + error.message);
+    }
   };
 
   const handleCancelEdit = () => {
@@ -184,21 +219,36 @@ export function Inventory() {
     setEditValues({});
   };
 
-  const handleDuplicate = (item) => {
-    const duplicatedItem = {
-      ...item,
-      id: crypto.randomUUID(),
-    };
+  const handleDuplicate = async (item) => {
+    try {
+      const { id, created_at, ...rest } = item;
+      const payload = { ...rest, user_id: user.id }; // Ensuring new ID is generated by DB
 
-    setItems(sortItems([...items, duplicatedItem]));
-    toast.info("Material duplicado");
+      const { data, error } = await supabase
+        .from("inventory")
+        .insert([payload])
+        .select();
+      if (error) throw error;
+
+      setItems([...items, ...data]);
+      toast.info("Material duplicado");
+    } catch (error) {
+      toast.error("Error al duplicar: " + error.message);
+    }
   };
+
+  if (loading)
+    return (
+      <div style={{ textAlign: "center", padding: "2rem" }}>
+        <Loader2 className="animate-spin" /> Cargando inventario...
+      </div>
+    );
 
   const filteredItems = items.filter(
     (item) =>
-      item.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.color.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.tipo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.marca || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.color || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -521,7 +571,7 @@ export function Inventory() {
                                 borderRadius: "50%",
                                 background: getColor(item.color),
                                 border:
-                                  item.color?.toLowerCase() === "blanco"
+                                  (item.color || "").toLowerCase() === "blanco"
                                     ? "1px solid var(--border)"
                                     : "none",
                               }}
