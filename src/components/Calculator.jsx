@@ -118,7 +118,15 @@ export function Calculator() {
       .from("presets")
       .select("*")
       .order("created_at", { ascending: true });
-    if (data) setPresets(data);
+    if (data) {
+      setPresets(data);
+      // Auto-load last used preset
+      const lastPresetId = localStorage.getItem("limonero_last_preset_id");
+      if (lastPresetId) {
+        const found = data.find((p) => p.id === lastPresetId);
+        if (found) setConfig(found.config);
+      }
+    }
   };
 
   const fetchInventory = async () => {
@@ -402,7 +410,10 @@ export function Calculator() {
 
   const handleLoadPreset = (id) => {
     const preset = presets.find((p) => p.id === id);
-    if (preset) setConfig(preset.config);
+    if (preset) {
+      setConfig(preset.config);
+      localStorage.setItem("limonero_last_preset_id", id);
+    }
   };
 
   const handleResetInputs = () => {

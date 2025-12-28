@@ -13,8 +13,15 @@ import "react-toastify/dist/ReactToastify.css";
 import { Loader2 } from "lucide-react";
 
 function AppContent() {
-  const [currentTab, setCurrentTab] = useState("dashboard");
+  const [currentTab, setCurrentTab] = useState(() => {
+    return localStorage.getItem("limonero_current_tab") || "dashboard";
+  });
   const { session, loading } = useAuth();
+
+  const handleTabChange = (tab) => {
+    setCurrentTab(tab);
+    localStorage.setItem("limonero_current_tab", tab);
+  };
 
   if (loading) {
     return (
@@ -49,7 +56,7 @@ function AppContent() {
         color: "var(--text-main)",
       }}
     >
-      <Navbar currentTab={currentTab} onTabChange={setCurrentTab} />
+      <Navbar currentTab={currentTab} onTabChange={handleTabChange} />
 
       <main style={{ padding: "2rem 0" }}>
         {currentTab === "dashboard" && <Dashboard />}
