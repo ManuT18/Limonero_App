@@ -209,7 +209,6 @@ export function Calculator() {
       adjustedPrice: result.precio_venta,
       clientName: "",
       description: "",
-      adjustedPrice: result.precio_venta,
     });
     setShowPrintModal(true);
   };
