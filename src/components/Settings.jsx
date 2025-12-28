@@ -51,15 +51,87 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   </div>
 );
 
+/* Existing CSV UTILS */
+const convertToCSV = (objArray) => {
+  const array = typeof objArray !== "object" ? JSON.parse(objArray) : objArray;
+  if (array.length === 0) return "";
+  const header = Object.keys(array[0]).join(",");
+  const rows = array
+    .map((obj) => {
+      return Object.values(obj)
+        .map((value) => {
+          const stringValue = value ? value.toString() : "";
+          if (stringValue.includes(",") || stringValue.includes('"')) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(",");
+    })
+    .join("\r\n");
+  return `${header}\r\n${rows}`;
+};
+
+const downloadCSV = (csvContent, fileName) => {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Simple CSV Parser
+const parseCSV = (text) => {
+  const lines = text.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const headers = lines[0]
+    .split(",")
+    .map((h) => h.trim().replace(/^"|"$/g, ""));
+
+  return lines.slice(1).map((line) => {
+    const values = [];
+    let current = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (i < line.length - 1 && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === "," && !inQuotes) {
+        values.push(current);
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    values.push(current);
+
+    return headers.reduce((obj, header, i) => {
+      obj[header] = values[i] ? values[i].replace(/^"|"$/g, "") : "";
+      return obj;
+    }, {});
+  });
+};
+
 export function Settings() {
   const fileInputRef = useRef(null);
+  const csvInputRef = useRef(null);
+  const [importType, setImportType] = useState(null); // 'inventory' | 'cashbook'
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  // ... existing handleExport ...
   const handleExport = async () => {
     try {
       setLoading(true);
-      // Fetch all data
       const { data: inventory } = await supabase.from("inventory").select("*");
       const { data: cashbook } = await supabase.from("cashbook").select("*");
       const { data: presets } = await supabase.from("presets").select("*");
@@ -78,12 +150,10 @@ export function Settings() {
         version: "v4-supabase",
       };
 
-      // Create Blob
       const blob = new Blob([JSON.stringify(data, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = url;
       a.download = `backup_limonero_cloud_${
@@ -93,7 +163,6 @@ export function Settings() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
       toast.success("Exportación completada");
     } catch (error) {
       toast.error("Error al exportar: " + error.message);
@@ -102,6 +171,7 @@ export function Settings() {
     }
   };
 
+  // ... existing JSON import logic ...
   const handleImportClick = () => {
     fileInputRef.current.click();
   };
@@ -114,8 +184,6 @@ export function Settings() {
     reader.onload = (e) => {
       try {
         const json = JSON.parse(e.target.result);
-
-        // Basic Validation
         if (!json.inventory && !json.cashbook) {
           toast.error("El archivo no es un backup válido.");
           return;
@@ -126,9 +194,7 @@ export function Settings() {
             setLoading(true);
             toast.info("Iniciando restauración...");
 
-            // 1. Inventory
             if (json.inventory && json.inventory.length > 0) {
-              // Ensure user_id is set to current user
               const inventoryData = json.inventory.map((item) => ({
                 ...item,
                 user_id: user.id,
@@ -138,8 +204,6 @@ export function Settings() {
                 .upsert(inventoryData);
               if (error) throw error;
             }
-
-            // 2. Cashbook
             if (json.cashbook && json.cashbook.length > 0) {
               const cashData = json.cashbook.map((item) => ({
                 ...item,
@@ -150,8 +214,6 @@ export function Settings() {
                 .upsert(cashData);
               if (error) throw error;
             }
-
-            // 3. Presets
             if (json.presets && json.presets.length > 0) {
               const presetData = json.presets.map((item) => ({
                 ...item,
@@ -162,8 +224,6 @@ export function Settings() {
                 .upsert(presetData);
               if (error) throw error;
             }
-
-            // 4. Config
             if (json.config) {
               const { error } = await supabase
                 .from("user_config")
@@ -184,7 +244,7 @@ export function Settings() {
         toast.error(
           ({ closeToast }) => (
             <ConfirmToast
-              message="¿Estás seguro? Esto fusionará/sobrescribirá los datos en la nube con el archivo."
+              message="¿Estás seguro? Esto fusionará/sobrescribirá los datos."
               closeToast={closeToast}
               onConfirm={proceedImport}
             />
@@ -197,7 +257,69 @@ export function Settings() {
       }
     };
     reader.readAsText(file);
-    event.target.value = ""; // Reset input
+    event.target.value = "";
+  };
+
+  // --- CSV Import Logic ---
+  const handleImportCSVClick = (type) => {
+    setImportType(type);
+    csvInputRef.current.click();
+  };
+
+  const handleCSVFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const rows = parseCSV(e.target.result);
+        if (rows.length === 0)
+          return toast.info("Archivo vacío o formato incorrecto");
+
+        setLoading(true);
+        let errorCount = 0;
+        let successCount = 0;
+
+        if (importType === "inventory") {
+          const payload = rows.map((r) => ({
+            user_id: user.id,
+            tipo: r.tipo || "Desconocido",
+            marca: r.marca || "",
+            color: r.color || "",
+            stock: parseFloat(r.stock) || 0,
+            precio: parseFloat(r.precio) || 0,
+            // Ignore ID to create new ones, or use if importing backup
+          }));
+          // Batch insert
+          const { error } = await supabase.from("inventory").insert(payload);
+          if (error) throw error;
+          successCount = payload.length;
+        } else if (importType === "cashbook") {
+          const payload = rows.map((r) => ({
+            user_id: user.id,
+            fecha: r.fecha || new Date().toISOString(),
+            tipo: r.tipo || "INGRESO",
+            monto: parseFloat(r.monto) || 0,
+            descripcion: r.descripcion || "",
+            nombre: r.nombre || "",
+          }));
+          const { error } = await supabase.from("cashbook").insert(payload);
+          if (error) throw error;
+          successCount = payload.length;
+        }
+
+        toast.success(`Importados ${successCount} registros exitosamente.`);
+      } catch (error) {
+        console.error(error);
+        toast.error("Error al importar CSV: " + error.message);
+      } finally {
+        setLoading(false);
+        setImportType(null);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = "";
   };
 
   const handleExportInventoryCSV = async () => {
@@ -205,7 +327,6 @@ export function Settings() {
       setLoading(true);
       const { data } = await supabase.from("inventory").select("*");
       if (!data || data.length === 0) return toast.info("Inventario vacío");
-
       const csv = convertToCSV(data);
       downloadCSV(
         csv,
@@ -223,7 +344,6 @@ export function Settings() {
       setLoading(true);
       const { data } = await supabase.from("cashbook").select("*");
       if (!data || data.length === 0) return toast.info("Caja vacía");
-
       const csv = convertToCSV(data);
       downloadCSV(
         csv,
@@ -280,16 +400,12 @@ export function Settings() {
               >
                 <Download size={20} />
               </div>
-              <h3 style={{ margin: 0 }}>Exportar Datos</h3>
+              <h3 style={{ margin: 0 }}>Exportar Datos (JSON)</h3>
             </div>
             <p
-              style={{
-                color: "var(--text-secondary)",
-                marginBottom: "1.5rem",
-                lineHeight: "1.5",
-              }}
+              style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}
             >
-              Descarga una copia de seguridad de tus datos en la nube (JSON).
+              Backup completo para restaurar luego.
             </p>
             <button
               className="btn btn-primary"
@@ -298,7 +414,7 @@ export function Settings() {
               disabled={loading}
             >
               <Save size={18} />
-              Descargar Backup Cloud
+              Descargar JSON
             </button>
           </div>
 
@@ -328,30 +444,12 @@ export function Settings() {
               >
                 <Upload size={20} />
               </div>
-              <h3 style={{ margin: 0 }}>Restaurar / Importar</h3>
+              <h3 style={{ margin: 0 }}>Restaurar Backup (JSON)</h3>
             </div>
             <p
-              style={{
-                color: "var(--text-secondary)",
-                marginBottom: "1.5rem",
-                lineHeight: "1.5",
-              }}
+              style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}
             >
-              Sube un archivo JSON para restaurar datos en tu cuenta.
-              <br />
-              <span
-                style={{
-                  color: "var(--danger)",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                  marginTop: "0.5rem",
-                  fontSize: "0.85rem",
-                }}
-              >
-                <AlertTriangle size={14} />
-                Sobrescribirá datos existentes.
-              </span>
+              Restaura un backup previo completo.
             </p>
             <input
               type="file"
@@ -367,7 +465,7 @@ export function Settings() {
               disabled={loading}
             >
               <Upload size={18} />
-              Seleccionar Archivo
+              Subir JSON
             </button>
           </div>
         </div>
@@ -376,28 +474,71 @@ export function Settings() {
       {/* Sección CSV */}
       <div className="card" style={{ marginTop: "2rem" }}>
         <div className="section-title">
-          <Download size={24} /> Reportes (Excel/CSV)
+          <SettingsIcon size={24} /> Gestión Masiva (CSV)
         </div>
         <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-          Descarga tus datos en formato CSV para abrirlos en Excel.
+          Exporta o Importa tus datos masivamente usando CSV (Excel / Sheets).
+          <br />
+          <small>
+            Para importar, asegúrate de que el CSV tenga las cabeceras correas
+            (tipo, marca, color, stock, precio para Inventario).
+          </small>
         </p>
+
+        <input
+          type="file"
+          ref={csvInputRef}
+          style={{ display: "none" }}
+          accept=".csv"
+          onChange={handleCSVFileChange}
+        />
+
         <div className="grid-2">
-          <button
-            className="btn btn-secondary"
-            style={{ justifyContent: "center" }}
-            onClick={handleExportInventoryCSV}
-            disabled={loading}
+          {/* INVENTARIO */}
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
           >
-            <Download size={18} /> Exportar Inventario (.csv)
-          </button>
-          <button
-            className="btn btn-secondary"
-            style={{ justifyContent: "center" }}
-            onClick={handleExportCashbookCSV}
-            disabled={loading}
+            <strong style={{ color: "var(--text-main)" }}>Inventario</strong>
+            <button
+              className="btn btn-secondary"
+              style={{ justifyContent: "center" }}
+              onClick={handleExportInventoryCSV}
+              disabled={loading}
+            >
+              <Download size={18} /> Exportar Inventario (.csv)
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ justifyContent: "center" }}
+              onClick={() => handleImportCSVClick("inventory")}
+              disabled={loading}
+            >
+              <Upload size={18} /> Importar Inventario (.csv)
+            </button>
+          </div>
+
+          {/* CAJA */}
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
           >
-            <Download size={18} /> Exportar Libro de Caja (.csv)
-          </button>
+            <strong style={{ color: "var(--text-main)" }}>Libro de Caja</strong>
+            <button
+              className="btn btn-secondary"
+              style={{ justifyContent: "center" }}
+              onClick={handleExportCashbookCSV}
+              disabled={loading}
+            >
+              <Download size={18} /> Exportar Libro de Caja (.csv)
+            </button>
+            <button
+              className="btn btn-secondary"
+              style={{ justifyContent: "center" }}
+              onClick={() => handleImportCSVClick("cashbook")}
+              disabled={loading}
+            >
+              <Upload size={18} /> Importar Libro de Caja (.csv)
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -405,33 +546,4 @@ export function Settings() {
 }
 
 // Utilidades CSV (Keep existing logic)
-const convertToCSV = (objArray) => {
-  const array = typeof objArray !== "object" ? JSON.parse(objArray) : objArray;
-  if (array.length === 0) return "";
-  const header = Object.keys(array[0]).join(",");
-  const rows = array
-    .map((obj) => {
-      return Object.values(obj)
-        .map((value) => {
-          const stringValue = value ? value.toString() : "";
-          if (stringValue.includes(",") || stringValue.includes('"')) {
-            return `"${stringValue.replace(/"/g, '""')}"`;
-          }
-          return stringValue;
-        })
-        .join(",");
-    })
-    .join("\r\n");
-  return `${header}\r\n${rows}`;
-};
 
-const downloadCSV = (csvContent, fileName) => {
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", fileName);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
