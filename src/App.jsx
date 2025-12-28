@@ -4,13 +4,13 @@ import { Calculator } from "./components/Calculator";
 import { Inventory } from "./components/Inventory";
 import { Cashbook } from "./components/Cashbook";
 import { Settings } from "./components/Settings";
-import { Dashboard } from "./components/Dashboard"; // Importar Dashboard
+import { Dashboard } from "./components/Dashboard";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function App() {
-  const [currentTab, setCurrentTab] = useState("dashboard"); // Default a Dashboard
+  const [currentTab, setCurrentTab] = useState("dashboard");
 
   return (
     <ThemeProvider>
