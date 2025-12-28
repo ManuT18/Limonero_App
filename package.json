@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && move dist\\index.html dist\\App-Limonero.html",
+    "build": "vite build",
+    "build:local": "vite build && move dist\\index.html dist\\App-Limonero.html",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
