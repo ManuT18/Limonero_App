@@ -48,8 +48,9 @@ export function VerifiedSuccess({ onContinue }) {
           ¡Email Verificado!
         </h1>
         <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>
-          Tu cuenta ha sido confirmada exitosamente. Ya puedes acceder a todas
-          las funcionalidades del Limonero.
+          Tu cuenta ha sido confirmada exitosamente
+          <br />
+          Ya puedes acceder a todas las funcionalidades del Limonero.
         </p>
 
         <button
