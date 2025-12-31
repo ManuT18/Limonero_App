@@ -39,7 +39,7 @@ function AppContent() {
     return params.get("verified") === "true";
   });
 
-  const { session, loading } = useAuth();
+  const { user, session, loading } = useAuth();
 
   /*
     B. MANEJADOR DE CAMBIO DE PESTAÑA
@@ -84,10 +84,6 @@ function AppContent() {
 
   /*
     D. PROTECCIÓN DE RUTA (Guard)
-    Si no hay sesión activa, bloquea el acceso y muestra el Login.
-  */
-  /*
-    D. PROTECCIÓN DE RUTA (Guard)
     Nueva lógica de ruteo según sesión y aprobación.
   */
 
@@ -129,8 +125,9 @@ function AppContent() {
   // Como <PublicStore> reemplaza a <Login>, necesitamos una forma de mostrar el Login.
   // Vamos a refactorizar levemente para manejar esto.
 
-  // 2. Si hay sesión pero NO está aprobado, mostramos pantalla de espera
-  if (session.user?.is_approved === false) {
+  // 2. Si hay sesión pero NO está aprobado, mostramos pantalla de espera.
+  // IMPORTANTE: Revisamos 'user.is_approved' (estado enriquecido), no session.user (raw JWT).
+  if (user?.is_approved === false) {
     return <PendingApproval />;
   }
 

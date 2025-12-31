@@ -48,6 +48,7 @@ export function StoreManager() {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .eq("user_id", user.id) // IMPORTANTISIMO: Solo ver mis productos en el Manager
         .order("created_at", { ascending: false });
 
       if (error) throw error;
