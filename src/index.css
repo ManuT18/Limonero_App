@@ -588,6 +588,24 @@ body {
     border: none !important;
     padding: 0 !important;
   }
+
+  /* Contenedor de Iconos (Tema/Logout) en Móvil */
+  .nav-icons-container {
+    display: flex;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+
+  /* Botones de Iconos en Móvil (Texto visible) */
+  .nav-icon-btn {
+    flex: 1;
+    justify-content: flex-start;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+  }
 }
 
 /* Desktop: Asegurar que hamburger no se vea y nav-actions se vea normal */
@@ -604,5 +622,23 @@ body {
     border: none;
     box-shadow: none;
     padding: 0;
+  }
+
+  /* Reset de Iconos para Desktop */
+  .nav-icons-container {
+    display: flex;
+    gap: 0.5rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: auto;
+  }
+
+  .nav-icon-btn {
+    padding: 0.5rem;
+    border-radius: 50%;
+    width: auto;
+    justify-content: center;
+    /* Colores específicos se manejan en JSX o aqui si se desea */
   }
 }

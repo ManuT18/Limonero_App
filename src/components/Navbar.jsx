@@ -44,7 +44,7 @@ export function Navbar({ currentTab, onTabChange }) {
     { id: "dashboard", label: "Dashboard", icon: Activity },
     { id: "calculator", label: "Calculadora", icon: Calculator },
     { id: "inventory", label: "Inventario", icon: Package },
-    { id: "cashbook", label: "Libro de Caja", icon: BookOpen },
+    { id: "cashbook", label: "Caja", icon: BookOpen },
     { id: "settings", label: "Configuración", icon: Settings },
   ];
 
@@ -127,27 +127,11 @@ export function Navbar({ currentTab, onTabChange }) {
             })}
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: "0.5rem",
-              borderTop: "1px solid var(--border)",
-              paddingTop: "1rem",
-              marginTop: "0.5rem",
-              width: "100%",
-            }}
-          >
+          <div className="nav-icons-container">
             {/* TOGGLE MODO OSCURO */}
             <button
               onClick={toggleTheme}
-              className="btn btn-ghost"
-              style={{
-                flex: 1,
-                justifyContent: "flex-start",
-                padding: "0.5rem",
-                borderRadius: "0.5rem",
-                color: theme === "dark" ? "#fbbf24" : "var(--text-secondary)",
-              }}
+              className="btn btn-ghost nav-icon-btn"
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
               <span
@@ -159,17 +143,7 @@ export function Navbar({ currentTab, onTabChange }) {
             </button>
 
             {/* CERRAR SESIÓN */}
-            <button
-              onClick={signOut}
-              className="btn btn-ghost"
-              style={{
-                flex: 1,
-                justifyContent: "flex-start",
-                padding: "0.5rem",
-                borderRadius: "0.5rem",
-                color: "var(--danger)",
-              }}
-            >
+            <button onClick={signOut} className="btn btn-ghost nav-icon-btn">
               <LogOut size={20} />
               <span
                 className="hamburger-btn"
