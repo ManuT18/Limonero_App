@@ -18,6 +18,7 @@ import {
   LogOut,
   Menu,
   X,
+  Store,
 } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
@@ -44,7 +45,8 @@ export function Navbar({ currentTab, onTabChange }) {
     { id: "dashboard", label: "Dashboard", icon: Activity },
     { id: "calculator", label: "Calculadora", icon: Calculator },
     { id: "inventory", label: "Inventario", icon: Package },
-    { id: "cashbook", label: "Libro de Caja", icon: BookOpen },
+    { id: "cashbook", label: "Caja", icon: BookOpen },
+    { id: "store", label: "Tienda", icon: Store },
     { id: "settings", label: "Configuración", icon: Settings },
   ];
 

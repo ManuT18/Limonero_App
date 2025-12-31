@@ -7,6 +7,9 @@ import { Settings } from "./components/Settings";
 import { Dashboard } from "./components/Dashboard";
 import { Login } from "./components/Login";
 import { VerifiedSuccess } from "./components/VerifiedSuccess";
+import { PendingApproval } from "./components/PendingApproval";
+import { PublicStore } from "./components/PublicStore";
+import { StoreManager } from "./components/StoreManager";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
@@ -83,8 +86,52 @@ function AppContent() {
     D. PROTECCIÓN DE RUTA (Guard)
     Si no hay sesión activa, bloquea el acceso y muestra el Login.
   */
+  /*
+    D. PROTECCIÓN DE RUTA (Guard)
+    Nueva lógica de ruteo según sesión y aprobación.
+  */
+
+  // Estado local para mostrar el Login cuando el usuario lo pide desde la Tienda Pública
+  const [showLogin, setShowLogin] = useState(false);
+
+  // 1. Si NO hay sesión...
   if (!session) {
-    return <Login />;
+    // ...y el usuario pidió loguearse, mostramos el componente Login
+    if (showLogin) {
+      return (
+        <div style={{ position: "relative" }}>
+          {/* Botón para volver a la tienda si se arrepiente */}
+          <button
+            onClick={() => setShowLogin(false)}
+            style={{
+              position: "absolute",
+              top: "1rem",
+              left: "1rem",
+              zIndex: 50,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "var(--text-secondary)",
+            }}
+          >
+            ← Volver a la Tienda
+          </button>
+          <Login />
+        </div>
+      );
+    }
+
+    // ...si no, mostramos la Tienda Pública
+    return <PublicStore onLoginClick={() => setShowLogin(true)} />;
+  }
+
+  // LOGIN MODAL STATE (Para PublicStore)
+  // Como <PublicStore> reemplaza a <Login>, necesitamos una forma de mostrar el Login.
+  // Vamos a refactorizar levemente para manejar esto.
+
+  // 2. Si hay sesión pero NO está aprobado, mostramos pantalla de espera
+  if (session.user?.is_approved === false) {
+    return <PendingApproval />;
   }
 
   /*
@@ -96,8 +143,7 @@ function AppContent() {
   }
 
   /*
-    E. RENDERIZADO PRINCIPAL
-    Si hay usuario, muestra la Navbar y el módulo seleccionado (Routing Manual).
+    E. RENDERIZADO PRINCIPAL (Usuario validado y aprobado)
   */
   return (
     <div
@@ -114,6 +160,7 @@ function AppContent() {
         {currentTab === "calculator" && <Calculator />}
         {currentTab === "inventory" && <Inventory />}
         {currentTab === "cashbook" && <Cashbook />}
+        {currentTab === "store" && <StoreManager />}
         {currentTab === "settings" && <Settings />}
       </main>
     </div>

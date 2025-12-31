@@ -38,20 +38,51 @@ export function AuthProvider({ children }) {
   -------------------------------------------------------------------------
   */
   useEffect(() => {
+    // Función auxiliar para obtener datos extra del perfil (is_approved)
+    const fetchProfile = async (sessionData) => {
+      if (!sessionData?.user) {
+        setUser(null);
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("is_approved")
+          .eq("id", sessionData.user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+        }
+
+        // Combinamos el usuario de Auth con el flag is_approved de la DB
+        const enrichedUser = {
+          ...sessionData.user,
+          is_approved: data?.is_approved ?? false, // Por seguridad default false
+        };
+
+        setSession(sessionData);
+        setUser(enrichedUser);
+      } catch (err) {
+        console.error("Unexpected error in fetchProfile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     // A) Verificación Inicial
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      fetchProfile(session);
     });
 
     // B) Listener de cambios
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      fetchProfile(session);
     });
 
     return () => subscription.unsubscribe();
