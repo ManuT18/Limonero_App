@@ -50,8 +50,9 @@ export function Login() {
           password,
           options: {
             data: {
-              full_name: fullName, // Guardamos el nombre en metadata del usuario
+              full_name: fullName,
             },
+            emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
@@ -125,7 +126,7 @@ export function Login() {
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
             {isSignUp
-              ? "Registrate para comenzar a gestionar tu 3D Farm"
+              ? "Registrate para comenzar a gestionar tu emprendimiento de impresión 3D"
               : "Ingresa a tu cuenta para continuar"}
           </p>
         </div>

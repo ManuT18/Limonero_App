@@ -1,3 +1,9 @@
+/*
+  -------------------------------------------------------------------------
+  SUB-COMPONENTE: ResultsSection
+  Panel derecho que muestra el desglose de costos calculados y el PRECIO FINAL.
+  -------------------------------------------------------------------------
+*/
 import React from "react";
 import {
   Package,

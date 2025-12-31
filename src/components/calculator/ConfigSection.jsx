@@ -1,3 +1,10 @@
+/*
+  -------------------------------------------------------------------------
+  SUB-COMPONENTE: ConfigSection
+  Maneja la configuración de costos fijos (energía, desgaste, precios)
+  y la gestión de Presets (guardar/cargar configuraciones).
+  -------------------------------------------------------------------------
+*/
 import React from "react";
 import {
   Settings,

@@ -1,3 +1,10 @@
+/*
+  -------------------------------------------------------------------------
+  SUB-COMPONENTE: PrintModal
+  Modal de confirmación final antes de registrar una venta/impresión.
+  Permite seleccionar material real, ajustar precio y agregar cliente/descripción.
+  -------------------------------------------------------------------------
+*/
 import React from "react";
 import { User, FileText } from "lucide-react";
 

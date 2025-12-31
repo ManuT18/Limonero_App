@@ -1,3 +1,10 @@
+/*
+  -------------------------------------------------------------------------
+  SERVICIO DE TRANSACCIONES
+  Lógica de negocio desacoplada de la UI.
+  Maneja operaciones complejas que involucran múltiples tablas (Inventory + Cashbook).
+  -------------------------------------------------------------------------
+*/
 import { supabase } from "../hooks/supabaseClient";
 
 /**

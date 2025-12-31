@@ -1,3 +1,9 @@
+/*
+  -------------------------------------------------------------------------
+  SUB-COMPONENTE: PieceInputs
+  Formulario simple para ingresar los datos variables de la pieza (Tiempo y Peso).
+  -------------------------------------------------------------------------
+*/
 import React from "react";
 import { RefreshCw, Eraser, Clock, Scale, DollarSign } from "lucide-react";
 
