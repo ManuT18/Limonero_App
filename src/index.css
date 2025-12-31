@@ -22,28 +22,28 @@
 */
 :root {
   /* Paleta Light (Claro) */
-  --primary: #6366f1;         /* Indigo 500 - Color principal de acción */
-  --primary-hover: #4f46e5;   /* Indigo 600 - Hover de botones */
-  --primary-light: #e0e7ff;   /* Indigo 100 - Fondos suaves */
+  --primary: #6366f1; /* Indigo 500 - Color principal de acción */
+  --primary-hover: #4f46e5; /* Indigo 600 - Hover de botones */
+  --primary-light: #e0e7ff; /* Indigo 100 - Fondos suaves */
 
-  --background: #f8fafc;      /* Slate 50 - Fondo de la página */
-  --surface: #ffffff;         /* Blanco - Fondo de tarjetas */
-  --input-bg: #ffffff;        /* Fondo de inputs */
+  --background: #f8fafc; /* Slate 50 - Fondo de la página */
+  --surface: #ffffff; /* Blanco - Fondo de tarjetas */
+  --input-bg: #ffffff; /* Fondo de inputs */
 
-  --text-main: #0f172a;       /* Slate 900 - Texto principal */
-  --text-secondary: #64748b;  /* Slate 500 - Texto secundario/labels */
-  --text-light: #94a3b8;      /* Slate 400 - Texto deshabilitado o placeholder */
+  --text-main: #0f172a; /* Slate 900 - Texto principal */
+  --text-secondary: #64748b; /* Slate 500 - Texto secundario/labels */
+  --text-light: #94a3b8; /* Slate 400 - Texto deshabilitado o placeholder */
 
-  --border: #e2e8f0;          /* Slate 200 - Bordes sutiles */
+  --border: #e2e8f0; /* Slate 200 - Bordes sutiles */
 
-  --success: #10b981;         /* Emerald 500 - Éxito */
+  --success: #10b981; /* Emerald 500 - Éxito */
   --success-hover: #059669;
   --success-bg: #d1fae5;
-  --danger: #ef4444;          /* Red 500 - Error/Eliminar */
+  --danger: #ef4444; /* Red 500 - Error/Eliminar */
   --danger-bg: #fee2e2;
 
-  --radius: 0.75rem;            /* 12px - Bordes redondeados estándar */
-  --radius-lg: 1rem;            /* 16px - Bordes redondeados grandes (Tarjetas) */
+  --radius: 0.75rem; /* 12px - Bordes redondeados estándar */
+  --radius-lg: 1rem; /* 16px - Bordes redondeados grandes (Tarjetas) */
 
   /* Sombras (Profundidad) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -58,25 +58,25 @@
   Cambia a colores oscuros de fondo y colores brillantes de acento (Lima).
 */
 .dark {
-  --background: #121212;       /* Slate 900 - Fondo de la página */
-  --surface: #1e1e1e;          /* Slate 800 - Fondo de tarjetas */
-  --input-bg: #2c2c2c;         /* Fondo de inputs */
+  --background: #121212; /* Slate 900 - Fondo de la página */
+  --surface: #1e1e1e; /* Slate 800 - Fondo de tarjetas */
+  --input-bg: #2c2c2c; /* Fondo de inputs */
 
-  --text-main: #e0e0e0;        /* Slate 100 - Texto principal */
-  --text-secondary: #a0a0a0;   /* Slate 500 - Texto secundario/labels */
-  --text-light: #6e6e6e;       /* Slate 400 - Texto deshabilitado o placeholder */
+  --text-main: #e0e0e0; /* Slate 100 - Texto principal */
+  --text-secondary: #a0a0a0; /* Slate 500 - Texto secundario/labels */
+  --text-light: #6e6e6e; /* Slate 400 - Texto deshabilitado o placeholder */
 
-  --primary: #c8ff42;          /* Brand Lime - Nuevo color principal en oscuro para contraste */
+  --primary: #c8ff42; /* Brand Lime - Nuevo color principal en oscuro para contraste */
   --primary-hover: #b2e639;
   --primary-light: rgba(200, 255, 66, 0.15);
 
-  --border: #333333;           /* Slate 900 - Bordes sutiles */
+  --border: #333333; /* Slate 900 - Bordes sutiles */
 
-  --success: #81c784;          /* Emerald 500 - Éxito */
+  --success: #81c784; /* Emerald 500 - Éxito */
   --success-hover: #66bb6a;
   --success-bg: rgba(129, 199, 132, 0.2);
 
-  --danger: #e57373;           /* Red 500 - Error/Eliminar */
+  --danger: #e57373; /* Red 500 - Error/Eliminar */
   --danger-bg: rgba(229, 115, 115, 0.2);
 
   /* Sombras más sutiles para fondos oscuros */
@@ -498,4 +498,111 @@ body {
   );
   color: #121212;
   box-shadow: 0 4px 10px rgba(200, 255, 66, 0.3);
+}
+
+/*
+  -------------------------------------------------------------------------
+  MEDIA QUERIES (RESPONSIVE)
+  Adaptaciones para dispositivos móviles (< 768px).
+  -------------------------------------------------------------------------
+*/
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr; /* Forzar columna única en móvil */
+    gap: 1.5rem;
+  }
+
+  /* Ajustes para la Navbar en móvil */
+  .navbar-container {
+    padding: 1rem;
+  }
+
+  .btn {
+    width: 100%; /* Botones full width en móvil para mejor toque */
+  }
+
+  /* Excepciones para botones que no deben ser full width */
+  .btn-icon,
+  .btn-ghost,
+  .btn-nav {
+    width: auto;
+  }
+
+  /* --- Navbar Mobile Styles --- */
+
+  /* Botón Hamburguesa (Visible solo en móvil) */
+  .hamburger-btn {
+    display: flex;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    cursor: pointer;
+  }
+
+  /* Contenedor de enlaces (Oculto por defecto en móvil si no tiene clase 'open') */
+  .nav-actions {
+    display: none; /* Se oculta layout desktop */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    flex-direction: column;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    gap: 1rem;
+    z-index: 99;
+  }
+
+  .nav-actions.open {
+    display: flex; /* Se muestra verticalmente */
+  }
+
+  /* Ajuste para que los botones de nav ocupen ancho completo en el menú móvil */
+  .nav-actions .btn-nav {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Grupo de pestañas interno */
+  .nav-tabs-group {
+    flex-direction: column;
+    width: 100%;
+    background: transparent !important; /* Quitar fondo gris del grupo en móvil */
+    border: none !important;
+    padding: 0 !important;
+  }
+}
+
+/* Desktop: Asegurar que hamburger no se vea y nav-actions se vea normal */
+@media (min-width: 769px) {
+  .hamburger-btn {
+    display: none;
+  }
+
+  .nav-actions {
+    display: flex !important;
+    flex-direction: row;
+    position: static;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
 }

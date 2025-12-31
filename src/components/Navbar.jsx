@@ -15,8 +15,12 @@ import {
   Sun,
   Moon,
   Activity,
+  Activity,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
+import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -28,6 +32,7 @@ import { useAuth } from "../context/AuthContext";
   -------------------------------------------------------------------------
 */
 export function Navbar({ currentTab, onTabChange }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth(); // Función para cerrar sesión en Supabase
 
@@ -82,14 +87,23 @@ export function Navbar({ currentTab, onTabChange }) {
           </div>
         </div>
 
-        {/* ACCIONES Y NAVEGACIÓN */}
-        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+        {/* BOTÓN HAMBURGUESA (Móvil) */}
+        <button
+          className="hamburger-btn"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* ACCIONES Y NAVEGACIÓN (Colapsable en móvil) */}
+        <div className={`nav-actions ${isMenuOpen ? "open" : ""}`}>
           {/* GRUPO DE PESTAÑAS */}
           <div
+            className="nav-tabs-group"
             style={{
               display: "flex",
               gap: "0.5rem",
-              background: "var(--surface)", 
+              background: "var(--surface)",
               padding: "0.25rem",
               borderRadius: "1rem",
               border: "1px solid var(--border)",
@@ -101,7 +115,10 @@ export function Navbar({ currentTab, onTabChange }) {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
+                  onClick={() => {
+                    onTabChange(tab.id);
+                    setIsMenuOpen(false); // Cerrar menú al navegar
+                  }}
                   className={`btn btn-nav ${isActive ? "active" : ""}`}
                 >
                   <Icon size={18} />
@@ -111,37 +128,58 @@ export function Navbar({ currentTab, onTabChange }) {
             })}
           </div>
 
-          {/* TOGGLE MODO OSCURO */}
-          <button
-            onClick={toggleTheme}
-            className="btn btn-ghost"
+          <div
             style={{
-              padding: "0.5rem",
-              borderRadius: "50%",
-              color: theme === "dark" ? "#fbbf24" : "var(--text-secondary)",
+              display: "flex",
+              gap: "0.5rem",
+              borderTop: "1px solid var(--border)",
+              paddingTop: "1rem",
+              marginTop: "0.5rem",
+              width: "100%",
             }}
-            title={
-              theme === "dark"
-                ? "Cambiar a Modo Claro"
-                : "Cambiar a Modo Oscuro"
-            }
           >
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+            {/* TOGGLE MODO OSCURO */}
+            <button
+              onClick={toggleTheme}
+              className="btn btn-ghost"
+              style={{
+                flex: 1,
+                justifyContent: "flex-start",
+                padding: "0.5rem",
+                borderRadius: "0.5rem",
+                color: theme === "dark" ? "#fbbf24" : "var(--text-secondary)",
+              }}
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              <span
+                className="hamburger-btn"
+                style={{ marginLeft: "0.5rem", fontSize: "0.9rem" }}
+              >
+                Modo {theme === "dark" ? "Claro" : "Oscuro"}
+              </span>
+            </button>
 
-          {/* CERRAR SESIÓN */}
-          <button
-            onClick={signOut}
-            className="btn btn-ghost"
-            style={{
-              padding: "0.5rem",
-              borderRadius: "50%",
-              color: "var(--danger)",
-            }}
-            title="Cerrar Sesión"
-          >
-            <LogOut size={20} />
-          </button>
+            {/* CERRAR SESIÓN */}
+            <button
+              onClick={signOut}
+              className="btn btn-ghost"
+              style={{
+                flex: 1,
+                justifyContent: "flex-start",
+                padding: "0.5rem",
+                borderRadius: "0.5rem",
+                color: "var(--danger)",
+              }}
+            >
+              <LogOut size={20} />
+              <span
+                className="hamburger-btn"
+                style={{ marginLeft: "0.5rem", fontSize: "0.9rem" }}
+              >
+                Salir
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </nav>
