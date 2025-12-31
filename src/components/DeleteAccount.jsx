@@ -246,7 +246,7 @@ export function DeleteAccount() {
                   {loading ? (
                     <Loader2 className="animate-spin" size={18} />
                   ) : (
-                    "Eliminar Todo"
+                    "Eliminar Cuenta"
                   )}
                 </button>
               </div>
