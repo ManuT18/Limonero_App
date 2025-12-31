@@ -50,7 +50,7 @@ export function VerifiedSuccess({ onContinue }) {
         <p style={{ color: "var(--text-secondary)", marginBottom: "2rem" }}>
           Tu cuenta ha sido confirmada exitosamente
           <br />
-          Ya puedes acceder a todas las funcionalidades del Limonero.
+          Ya puedes acceder a todas las funcionalidades de El Limonero
         </p>
 
         <button
