@@ -6,6 +6,7 @@ import { Cashbook } from "./components/Cashbook";
 import { Settings } from "./components/Settings";
 import { Dashboard } from "./components/Dashboard";
 import { Login } from "./components/Login";
+import { VerifiedSuccess } from "./components/VerifiedSuccess";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
@@ -29,6 +30,12 @@ function AppContent() {
     return localStorage.getItem("limonero_current_tab") || "dashboard";
   });
 
+  // Estado para mostrar pantalla de éxito de verificación
+  const [isVerified, setIsVerified] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("verified") === "true";
+  });
+
   const { session, loading } = useAuth();
 
   /*
@@ -39,6 +46,12 @@ function AppContent() {
   const handleTabChange = (tab) => {
     setCurrentTab(tab);
     localStorage.setItem("limonero_current_tab", tab);
+  };
+
+  const handleVerifiedContinue = () => {
+    setIsVerified(false);
+    // Limpiar URL sin recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
   };
 
   /*
@@ -72,6 +85,14 @@ function AppContent() {
   */
   if (!session) {
     return <Login />;
+  }
+
+  /*
+    D.1. VERIFICACIÓN EXITOSA
+    Si el usuario viene del email de confirmación, mostramos la pantalla de éxito.
+  */
+  if (isVerified) {
+    return <VerifiedSuccess onContinue={handleVerifiedContinue} />;
   }
 
   /*
