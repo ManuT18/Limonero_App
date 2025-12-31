@@ -1,5 +1,13 @@
+/*
+  -------------------------------------------------------------------------
+  1. IMPORTACIONES
+  - React Hooks (useMemo, useState, useEffect): Para optimizar cálculos y manejar estado.
+  - Supabase: Para obtener datos de Inventario y Caja.
+  - Iconos (Lucide): Para visualizar KPIs gráficamente.
+  -------------------------------------------------------------------------
+*/
 import React, { useMemo, useState, useEffect } from "react";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../hooks/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import {
   TrendingUp,
@@ -11,16 +19,27 @@ import {
   Loader2,
 } from "lucide-react";
 
+/*
+  -------------------------------------------------------------------------
+  2. COMPONENTE DASHBOARD
+  Vista principal que resume el estado del negocio.
+  Muestra tarjetas con KPIs (Indicadores Clave de Desempeño) y gráficos simples.
+  -------------------------------------------------------------------------
+*/
 export function Dashboard() {
   const [inventory, setInventory] = useState([]);
   const [cashbook, setCashbook] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /*
+    A. CARGA DE DATOS (Data Fetching)
+    Obtiene métricas crudas de las tablas 'inventory' y 'cashbook'.
+    Se optimiza pidiendo solo las columnas necesarias para los cálculos.
+  */
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Optimization: Fetch only needed columns
         const { data: invData } = await supabase
           .from("inventory")
           .select("id, precio, stock");
@@ -39,11 +58,16 @@ export function Dashboard() {
     fetchData();
   }, []);
 
-  // 1. Cálculos de KPIs
+  /*
+    B. CÁLCULO DE MÉTRICAS (KPIs)
+    Se usa useMemo para recalcular solo si cambian los datos de inventario o caja.
+    1. Valor Inventario: Suma de (Stock * Precio/g).
+    2. Balance: Ingresos - Egresos históricos.
+    3. Ingresos Mensuales: Suma de ingresos del mes corriente.
+  */
   const kpis = useMemo(() => {
-    // Valor del Inventario
     const inventoryValue = inventory.reduce((total, item) => {
-      const precioPorGramo = (item.precio || 0) / 1000; // precio es por KG
+      const precioPorGramo = (item.precio || 0) / 1000;
       return total + precioPorGramo * (item.stock || 0);
     }, 0);
 
@@ -86,7 +110,10 @@ export function Dashboard() {
     };
   }, [inventory, cashbook]);
 
-  // 2. Datos para Gráfico (Últimos 6 meses)
+  /*
+    C. DATOS PARA GRÁFICOS
+    Genera un array con los últimos 6 meses para mostrar la evolución Ingresos vs Egresos.
+  */
   const chartData = useMemo(() => {
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -117,10 +144,32 @@ export function Dashboard() {
     return months;
   }, [cashbook]);
 
+  // Escala para el gráfico de líneas (Normalización visual)
   const maxChartValue = Math.max(
     ...chartData.map((d) => Math.max(d.income, d.expense)),
     100
   );
+
+  // Helpers para gráfico SVG (Puntos y Líneas)
+  const getCoord = (i, val) => {
+    const x = i * 20; // Distribuir 6 puntos en 100% (0, 20, 40, 60, 80, 100)
+    const y = 100 - (val / maxChartValue) * 100;
+    return { x, y };
+  };
+
+  const pointsIncome = chartData
+    .map((d, i) => {
+      const { x, y } = getCoord(i, d.income);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const pointsExpense = chartData
+    .map((d, i) => {
+      const { x, y } = getCoord(i, d.expense);
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   if (loading)
     return (
@@ -129,6 +178,12 @@ export function Dashboard() {
       </div>
     );
 
+  /*
+    D. RENDERIZADO VISUAL
+    - Tarjetas de KPIs (Arriba).
+    - Gráfico de Barras CSS (Izquierda abajo).
+    - Panel de Resumen Rápido (Derecha abajo).
+  */
   return (
     <div className="container">
       <h2 className="section-title" style={{ marginBottom: "2rem" }}>
@@ -280,80 +335,157 @@ export function Dashboard() {
 
       {/* Charts Section */}
       <div className="grid-2" style={{ alignItems: "start" }}>
-        {/* Income vs Expense Chart */}
+        {/* Grafo de Líneas (SVG) */}
         <div className="card">
           <div className="section-title" style={{ fontSize: "1.1rem" }}>
             <TrendingUp size={18} /> Ingresos vs Egresos (6 Meses)
           </div>
-          <div
-            style={{
-              height: "200px",
-              display: "flex",
-              alignItems: "flex-end",
-              gap: "1rem",
-              paddingTop: "2rem",
-            }}
-          >
-            {chartData.map((d, i) => (
-              <div
-                key={i}
-                style={{
-                  flex: 1,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "flex-end",
-                  gap: "4px",
-                }}
-              >
-                {/* Bars Container */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "4px",
-                    height: "100%",
-                    alignItems: "flex-end",
-                    justifyContent: "center",
-                  }}
-                >
-                  {/* Income Bar */}
-                  <div
-                    style={{
-                      width: "30%",
-                      height: `${(d.income / maxChartValue) * 100}%`,
-                      background: "#10B981",
-                      borderRadius: "4px 4px 0 0",
-                      transition: "height 0.3s ease",
-                      minHeight: d.income > 0 ? "4px" : "0",
-                    }}
-                    title={`Ingresos: $${d.income}`}
-                  />
 
-                  {/* Expense Bar */}
-                  <div
-                    style={{
-                      width: "30%",
-                      height: `${(d.expense / maxChartValue) * 100}%`,
-                      background: "#EF4444",
-                      borderRadius: "4px 4px 0 0",
-                      transition: "height 0.3s ease",
-                      minHeight: d.expense > 0 ? "4px" : "0",
-                    }}
-                    title={`Egresos: $${d.expense}`}
-                  />
-                </div>
-                {/* Label */}
+          <div style={{ position: "relative", paddingTop: "1rem" }}>
+            {/* Contenedor SVG */}
+            <div style={{ height: "200px", width: "100%" }}>
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                style={{ width: "100%", height: "100%", overflow: "visible" }}
+              >
+                {/* Eje Y (Línea base opcional) */}
+                <line
+                  x1="0"
+                  y1="100"
+                  x2="100"
+                  y2="100"
+                  stroke="var(--border)"
+                  strokeWidth="1"
+                />
+
+                {/* Línea de Ingresos */}
+                <polyline
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="2"
+                  points={pointsIncome}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Línea de Egresos */}
+                <polyline
+                  fill="none"
+                  stroke="#EF4444"
+                  strokeWidth="2"
+                  points={pointsExpense}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {/* Puntos (Ingresos) */}
+                {chartData.map((d, i) => {
+                  const { x, y } = getCoord(i, d.income);
+                  return (
+                    <circle
+                      key={`inc-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="1.5"
+                      fill="#10B981"
+                      stroke="var(--card-bg)"
+                      strokeWidth="0.5"
+                    >
+                      <title>Ingresos: ${d.income}</title>
+                    </circle>
+                  );
+                })}
+
+                {/* Puntos (Egresos) */}
+                {chartData.map((d, i) => {
+                  const { x, y } = getCoord(i, d.expense);
+                  return (
+                    <circle
+                      key={`exp-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="1.5"
+                      fill="#EF4444"
+                      stroke="var(--card-bg)"
+                      strokeWidth="0.5"
+                    >
+                      <title>Egresos: ${d.expense}</title>
+                    </circle>
+                  );
+                })}
+              </svg>
+            </div>
+
+            {/* Etiquetas del Eje X */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "0.5rem",
+              }}
+            >
+              {chartData.map((d, i) => (
                 <div
+                  key={i}
                   style={{
-                    textAlign: "center",
                     fontSize: "0.7rem",
                     color: "var(--text-secondary)",
+                    textAlign: "center",
+                    width: "20px", // Ancho fijo para centrar respecto al punto
+                    transform: "translateX(0)", // Ajuste visual si es necesario
                   }}
                 >
                   {d.label}
                 </div>
+              ))}
+            </div>
+
+            {/* Leyenda */}
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                justifyContent: "center",
+                marginTop: "1rem",
+                fontSize: "0.8rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    background: "#10B981",
+                    borderRadius: "50%",
+                  }}
+                ></div>
+                <span>Ingresos</span>
               </div>
-            ))}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    background: "#EF4444",
+                    borderRadius: "50%",
+                  }}
+                ></div>
+                <span>Egresos</span>
+              </div>
+            </div>
           </div>
         </div>
 
