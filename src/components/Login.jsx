@@ -8,7 +8,7 @@
 */
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Citrus, Mail, Lock, Loader2 } from "lucide-react";
+import { Citrus, Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";
 
 /*
@@ -26,6 +26,7 @@ export function Login() {
     - Inputs: email, password, fullName (solo para registro).
   */
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Visibilidad de contraseña
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth(); // Importamos funciones del AuthContext
 
@@ -189,13 +190,31 @@ export function Login() {
               />
               <input
                 className="input"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                style={{ paddingLeft: "2.5rem" }}
+                style={{ paddingLeft: "2.5rem", paddingRight: "2.5rem" }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  padding: 0,
+                  display: "flex",
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
