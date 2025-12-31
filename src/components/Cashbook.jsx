@@ -1,11 +1,19 @@
+/*
+  -------------------------------------------------------------------------
+  1. IMPORTACIONES
+  - React Hooks: Gestión de estado y efectos.
+  - Supabase: Para guardar ingresos y egresos en la base de datos.
+  - Toastify: Feedback visual de las operaciones.
+  - Iconos: Flechas, edición y eliminación para la tabla de movimientos.
+  -------------------------------------------------------------------------
+*/
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../hooks/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import {
   ArrowUpCircle,
   ArrowDownCircle,
-  Plus,
   BookOpen,
   TrendingUp,
   TrendingDown,
@@ -14,6 +22,13 @@ import {
   Loader2,
 } from "lucide-react";
 
+/*
+  -------------------------------------------------------------------------
+  2. COMPONENTE DE CONFIRMACIÓN (Toast)
+  Pequeña UI renderizada dentro de un toast para confirmar acciones destructivas
+  como eliminar un registro financiero.
+  -------------------------------------------------------------------------
+*/
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   <div>
     <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
@@ -54,34 +69,48 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   </div>
 );
 
+/*
+  -------------------------------------------------------------------------
+  3. COMPONENTE CASHBOOK (Libro de Caja)
+  Gestión financiera:
+  - Registro de Ingresos (Ventas) y Egresos (Compras/Gastos).
+  - Cálculo de Balance Total.
+  - Funcionalidad avanzada: Reversión automática de Stock si se elimina una venta.
+  -------------------------------------------------------------------------
+*/
 export function Cashbook() {
+  // --- ESTADO GLOBAL ---
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Inventory is needed for restoration logic, but we might check it on demand or load it.
-  // Loading all inventory just for delete might be overkill but simple.
-  // Actually, we only need to update it.
 
-  const { user } = useAuth();
+  const { user } = useAuth(); // Contexto de usuario para RLS
+
+  // --- ESTADO DE TRANSACCIÓN (FORMULARIO) ---
   const [newMovement, setNewMovement] = useState({
-    tipo: "INGRESO",
+    tipo: "INGRESO", // Default
     monto: "",
     descripcion: "",
     nombre: "",
   });
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [isAdding, setIsAdding] = useState(false); // Mostrar/ocultar formulario
+  const [editingId, setEditingId] = useState(null); // ID en edición
 
+  // Carga inicial
   useEffect(() => {
     fetchMovements();
   }, []);
 
+  /*
+    A. LECTURA DE MOVIMIENTOS
+    Obtiene el historial financiero ordenado por fecha descendente (más reciente primero).
+  */
   const fetchMovements = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("cashbook")
         .select("*")
-        .order("fecha", { ascending: false }); // Newest first
+        .order("fecha", { ascending: false });
 
       if (error) throw error;
       setMovements(data || []);
@@ -92,6 +121,10 @@ export function Cashbook() {
     }
   };
 
+  /*
+    B. GUARDAR (CREAR / EDITAR)
+    Maneja tanto la inserción de nuevos registros como la actualización de existentes.
+  */
   const handleSave = async () => {
     if (!newMovement.monto || !newMovement.descripcion) return;
 
@@ -102,51 +135,45 @@ export function Cashbook() {
         monto: parseFloat(newMovement.monto),
         descripcion: newMovement.descripcion,
         nombre: newMovement.nombre || "",
-        // fecha will default to now() on insert if not provided
-        // or we can provide it explicitly.
       };
 
       if (!editingId) {
-        // Create new
+        // Crear nuevo: Asignamos fecha actual
         payload.fecha = new Date().toISOString();
       }
 
-      let data, error;
+      let error;
 
       if (editingId) {
-        // Edit
+        // --- MODO EDICIÓN ---
         const { error: updateError } = await supabase
           .from("cashbook")
-          .update({
-            tipo: payload.tipo,
-            monto: payload.monto,
-            descripcion: payload.descripcion,
-            nombre: payload.nombre,
-          })
+          .update(payload)
           .eq("id", editingId);
         error = updateError;
 
         if (!error) {
+          // Actualización optimista del estado local
           setMovements((prev) =>
             prev.map((m) => (m.id === editingId ? { ...m, ...payload } : m))
           );
         }
       } else {
-        // Insert
+        // --- MODO CREACIÓN ---
         const { data: insertData, error: insertError } = await supabase
           .from("cashbook")
           .insert([payload])
           .select();
-        data = insertData;
         error = insertError;
 
-        if (!error && data) {
-          setMovements([data[0], ...movements]);
+        if (!error && insertData) {
+          setMovements([insertData[0], ...movements]);
         }
       }
 
       if (error) throw error;
 
+      // Reseteo del formulario
       setNewMovement({
         tipo: "INGRESO",
         monto: "",
@@ -163,6 +190,10 @@ export function Cashbook() {
     }
   };
 
+  /*
+    C. INICIAR EDICIÓN
+    Carga los datos del movimiento en el formulario para modificar.
+  */
   const handleEdit = (mov) => {
     setNewMovement({
       tipo: mov.tipo,
@@ -174,6 +205,11 @@ export function Cashbook() {
     setIsAdding(true);
   };
 
+  /*
+    D. ELIMINAR CON LÓGICA DE RESTAURACIÓN DE STOCK
+    Si el movimiento tiene metadatos de "stockRestoration" (proviene de una venta en Calculator),
+    se devuelve el material al inventario antes de borrar el registro financiero.
+  */
   const handleDelete = (id) => {
     toast.error(
       ({ closeToast }) => (
@@ -182,15 +218,14 @@ export function Cashbook() {
           closeToast={closeToast}
           onConfirm={async () => {
             try {
-              // 1. Get movement to check metadata
-              // We likely have it in state 'movements', but fetching ensures safety
+              // 1. Obtener el movimiento para verificar metadatos
               const mov = movements.find((m) => m.id === id);
 
               if (mov && mov.metadata && mov.metadata.stockRestoration) {
                 const { materialId, quantity } = mov.metadata.stockRestoration;
 
-                // 2. Restore Stock
-                // Fetch current stock first (concurrency safe-ish)
+                // 2. Restaurar Stock en Inventario
+                // Primero obtenemos el stock actual para sumar correctamente
                 const { data: matData, error: matError } = await supabase
                   .from("inventory")
                   .select("stock")
@@ -208,7 +243,7 @@ export function Cashbook() {
                 }
               }
 
-              // 3. Delete Movement
+              // 3. Eliminar Movimiento de Caja
               const { error } = await supabase
                 .from("cashbook")
                 .delete()
@@ -234,6 +269,7 @@ export function Cashbook() {
     setNewMovement({ tipo: "INGRESO", monto: "", descripcion: "", nombre: "" });
   };
 
+  // --- CÁLCULOS DE TOTALES ---
   const totalIngresos = movements
     .filter((m) => m.tipo === "INGRESO")
     .reduce((acc, curr) => acc + curr.monto, 0);
@@ -249,9 +285,16 @@ export function Cashbook() {
       </div>
     );
 
+  /*
+    E. RENDERIZADO PRINCIPAL
+    1. Tarjetas Superiores: Balance, Ingresos, Egresos.
+    2. Botones de Acción: Registrar Ingreso/Egreso.
+    3. Formulario (Condicional).
+    4. Tabla de Historial.
+  */
   return (
     <div className="container">
-      {/* Resumen Cards */}
+      {/* 1. RESUMEN FINANCIERO */}
       <div
         className="grid-2"
         style={{
@@ -313,6 +356,7 @@ export function Cashbook() {
         </div>
       </div>
 
+      {/* 2. GESTIÓN DE MOVIMIENTOS */}
       <div className="card">
         <div
           style={{
@@ -352,6 +396,7 @@ export function Cashbook() {
           </div>
         </div>
 
+        {/* 3. FORMULARIO DE CARGA */}
         {isAdding && (
           <div
             style={{
@@ -447,6 +492,7 @@ export function Cashbook() {
           </div>
         )}
 
+        {/* 4. TABLA DE HISTORIAL */}
         <div className="table-container">
           <table className="table">
             <thead>

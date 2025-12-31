@@ -1,12 +1,22 @@
-/* Compact styles for Calculator inputs */
+/*
+  -------------------------------------------------------------------------
+  1. ESTILOS COMPACTOS (CALCULADORA)
+  Diseño optimizado para inputs de la calculadora, buscando reducir ruido visual.
+  -------------------------------------------------------------------------
+*/
 
+/* 
+  Contenedor tipo tarjeta para inputs
+  - Flex column para alinear label e input.
+  - Hover y Focus: Efectos visuales suaves (sombra y borde) para mejorar UX.
+*/
 .input-card-compact {
   display: flex;
   flex-direction: column;
   background: var(--surface-hover);
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
-  border: 1px solid transparent; /* Prepare for focus state */
+  border: 1px solid transparent; /* Preparado para estado focus */
   transition: all 0.2s ease;
 }
 
@@ -21,6 +31,10 @@
   box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+/* 
+  Etiqueta pequeña (Label)
+  - Tamaño de fuente reducido y color secundario.
+*/
 .label-compact {
   font-size: 0.75rem;
   color: var(--text-secondary);
@@ -31,6 +45,11 @@
   font-weight: 500;
 }
 
+/* 
+  Input Transparente
+  - Sin bordes ni fondo propio, se integra en la tarjeta.
+  - Fuente grande y negrita para legibilidad del valor numérico.
+*/
 .input-compact-transparent {
   width: 100%;
   border: none;
@@ -42,6 +61,11 @@
   color: var(--text-main);
   outline: none;
 }
+
+/* 
+  Eliminar flechas de incremento/decremento en inputs numéricos
+  (Spin Buttons) para un look más limpio.
+*/
 
 /* Chrome, Safari, Edge, Opera */
 .input-compact-transparent::-webkit-outer-spin-button,
