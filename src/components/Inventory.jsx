@@ -1,6 +1,16 @@
+/*
+  -------------------------------------------------------------------------
+  1. IMPORTACIONES
+  - React Hooks: Para estado y efectos secundarios (fetch inicial).
+  - Toastify: Para notificaciones al usuario (éxito/error).
+  - Supabase: Cliente para base de datos.
+  - Iconos: Lucide React para la interfaz gráfica.
+  - Helpers: Utilidades fuera del componente para colores y toasts de confirmación.
+  -------------------------------------------------------------------------
+*/
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../hooks/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import {
   Trash2,
@@ -14,10 +24,13 @@ import {
   Loader2,
 } from "lucide-react";
 
-// getColor and ConfirmToast helper functions remain the same (omitted for brevity in replacement if unchanged, but I need to include them or ensure they aren't lost if I replace the whole file. Since I'm replacing the whole component body basically, I should be careful).
-// actually, I will keep helper functions if they are outside the component.
-// The previous file content shows helper functions outside. I will try to target the component definition.
-
+/*
+  -------------------------------------------------------------------------
+  2. FUNCIONES AUXILIARES (Helpers)
+  - getColor: Devuelve un código hex basado en el nombre del color (para mostrar una bolita de color).
+  - ConfirmToast: Componente pequeño para confirmar eliminación dentro del toast.
+  -------------------------------------------------------------------------
+*/
 const getColor = (name) => {
   if (!name) return "#E5E7EB";
   const lower = name.toLowerCase().trim();
@@ -29,9 +42,10 @@ const getColor = (name) => {
     naranja: "#F97316",
     violeta: "#8B5CF6",
     rosa: "#EC4899",
-    negro: "#1F2937",
+    negro: "#000000ff",
     blanco: "#F9FAFB",
     gris: "#9CA3AF",
+    "gris oscuro": "#2e2e2eff",
     marron: "#78350F",
     "verde claro": "#86EFAC",
     "verde oscuro": "#14532D",
@@ -88,11 +102,20 @@ const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   </div>
 );
 
+/*
+  -------------------------------------------------------------------------
+  3. COMPONENTE INVENTORY
+  Gestión CRUD (Create - Read - Update - Delete) completa de materiales de impresión 3D (Filamentos).
+  Permite: Listar, Agregar, Editar, Duplicar y Eliminar items.
+  -------------------------------------------------------------------------
+*/
 export function Inventory() {
+  // --- ESTADO GLOBAL ---
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useAuth(); // Obtenemos el ID del usuario para RLS (Row Level Security)
 
+  // --- ESTADO DEL FORMULARIO (NUEVO ITEM) ---
   const [newItem, setNewItem] = useState({
     tipo: "",
     marca: "",
@@ -100,15 +123,22 @@ export function Inventory() {
     stock: "",
     precio: "",
   });
-  const [isAdding, setIsAdding] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editValues, setEditValues] = useState({});
+  const [isAdding, setIsAdding] = useState(false); // Toggle para mostrar el form
 
+  // --- ESTADO DE UI INTERACTIVA ---
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState(null); // ID del item que se está editando
+  const [editValues, setEditValues] = useState({}); // Valores temporales de edición
+
+  // Carga inicial de datos
   useEffect(() => {
     fetchItems();
   }, []);
 
+  /*
+    A. LECTURA DE DATOS (READ)
+    Trae todos los items de la tabla 'inventory' ordenados por tipo.
+  */
   const fetchItems = async () => {
     try {
       setLoading(true);
@@ -126,6 +156,10 @@ export function Inventory() {
     }
   };
 
+  /*
+    B. CREACIÓN DE DATOS (CREATE)
+    Inserta un nuevo registro en Supabase y actualiza el estado local optimísticamente.
+  */
   const handleAdd = async () => {
     if (!newItem.tipo || !newItem.stock) return;
 
@@ -154,6 +188,10 @@ export function Inventory() {
     }
   };
 
+  /*
+    C. ELIMINACIÓN DE DATOS (DELETE)
+    Muestra un Toast personalizado de confirmación antes de borrar.
+  */
   const handleDelete = (id) => {
     toast.error(
       ({ closeToast }) => (
@@ -180,6 +218,10 @@ export function Inventory() {
     );
   };
 
+  /*
+    D. EDICIÓN DE DATOS (UPDATE)
+    Funciones para iniciar modo edición, guardar cambios y cancelar.
+  */
   const handleEdit = (item) => {
     setEditingId(item.id);
     setEditValues({ ...item });
@@ -219,10 +261,14 @@ export function Inventory() {
     setEditValues({});
   };
 
+  /*
+    E. DUPLICACIÓN
+    Crea una copia de un item existente (útil para variantes de color).
+  */
   const handleDuplicate = async (item) => {
     try {
       const { id, created_at, ...rest } = item;
-      const payload = { ...rest, user_id: user.id }; // Ensuring new ID is generated by DB
+      const payload = { ...rest, user_id: user.id }; // Aseguramos nuevo ID generado por la DB
 
       const { data, error } = await supabase
         .from("inventory")
@@ -244,6 +290,7 @@ export function Inventory() {
       </div>
     );
 
+  // Filtrado en tiempo real (Búsqueda)
   const filteredItems = items.filter(
     (item) =>
       (item.tipo || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -251,9 +298,16 @@ export function Inventory() {
       (item.color || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  /*
+    F. RENDERIZADO PRINCIPAL
+    - Barra superior: Título, Buscador, Botón Nuevo.
+    - Formulario (Condicional): Panel colapsable para agregar.
+    - Tabla: Lista de materiales con soporte para edición en línea (Inline Editing).
+  */
   return (
     <div className="container">
       <div className="card">
+        {/* CABECERA Y ACCIONES */}
         <div
           style={{
             display: "flex",
@@ -307,6 +361,7 @@ export function Inventory() {
           </div>
         </div>
 
+        {/* FORMULARIO DE AGREGAR */}
         {isAdding && (
           <div
             style={{
@@ -408,6 +463,7 @@ export function Inventory() {
           </div>
         )}
 
+        {/* TABLA DE RESULTADOS */}
         <div className="table-container">
           <table className="table">
             <thead>
@@ -438,7 +494,7 @@ export function Inventory() {
                   <tr key={item.id}>
                     {editingId === item.id ? (
                       <>
-                        {/* EDICION */}
+                        {/* MODO EDICIÓN (INLINE) */}
                         <td>
                           <input
                             className="input"
@@ -537,7 +593,7 @@ export function Inventory() {
                       </>
                     ) : (
                       <>
-                        {/* VISTA NORMAL */}
+                        {/* MODO VISUALIZACIÓN */}
                         <td>
                           <span
                             style={{

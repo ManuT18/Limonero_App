@@ -1,29 +1,55 @@
+/*
+  -------------------------------------------------------------------------
+  1. IMPORTACIONES
+  - React, useState: Para manejar los inputs del formulario y el modo (Login/Registro).
+  - useAuth: Hook personalizado para acceder a las funciones signIn y signUp de Supabase.
+  - Iconos (Lucide) y Toastify (Alertas): Para mejorar la UX visual.
+  -------------------------------------------------------------------------
+*/
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Citrus, Mail, Lock, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 
+/*
+  -------------------------------------------------------------------------
+  2. COMPONENTE LOGIN
+  Unifica la lógica de Inicio de Sesión y Registro en una sola vista.
+  Permite alternar entre modos usando el estado 'isSignUp'.
+  -------------------------------------------------------------------------
+*/
 export function Login() {
+  /*
+    A. ESTADO LOCAL
+    - isSignUp: False = "Log In", True = "Create Account".
+    - loading: Para deshabilitar el botón mientras Supabase responde.
+    - Inputs: email, password, fullName (solo para registro).
+  */
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp } = useAuth(); // Importamos funciones del AuthContext
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState(""); // Only for Sign Up
+  const [fullName, setFullName] = useState(""); // Solo para Sign Up
 
+  /*
+    B. MANEJADOR DE ENVÍO (Submit)
+    Gestiona la llamada a Supabase dependiendo del modo actual.
+  */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isSignUp) {
+        // --- MODO REGISTRO ---
         const { error } = await signUp({
           email,
           password,
           options: {
             data: {
-              full_name: fullName,
+              full_name: fullName, // Guardamos el nombre en metadata del usuario
             },
           },
         });
@@ -32,9 +58,11 @@ export function Login() {
           "¡Cuenta creada! Por favor revisa tu email para confirmar."
         );
       } else {
+        // --- MODO LOGIN ---
         const { error } = await signIn({ email, password });
         if (error) throw error;
         // La redirección/cambio de estado lo maneja AuthContext automáticamente
+        // al detectar el cambio de sesión (onAuthStateChange).
       }
     } catch (error) {
       toast.error(error.message || "Ha ocurrido un error");
@@ -43,6 +71,11 @@ export function Login() {
     }
   };
 
+  /*
+    C. RENDERIZADO (UI)
+    Diseño centrado con tarjeta flotante. Usa estilos inline para mantener la 
+    simplicidad en un solo archivo, aunque usa clases CSS globales para inputs y botones.
+  */
   return (
     <div
       style={{
@@ -65,6 +98,7 @@ export function Login() {
           gap: "1.5rem",
         }}
       >
+        {/* Encabezado: Logo y Título */}
         <div style={{ textAlign: "center", marginBottom: "1rem" }}>
           <div
             style={{
@@ -95,10 +129,12 @@ export function Login() {
           </p>
         </div>
 
+        {/* Formulario */}
         <form
           onSubmit={handleSubmit}
           style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
         >
+          {/* Campo Nombre (Solo visible en Registro) */}
           {isSignUp && (
             <div className="input-group" style={{ margin: 0 }}>
               <label className="label">Nombre Completo</label>
@@ -179,6 +215,7 @@ export function Login() {
           </button>
         </form>
 
+        {/* Pie: Switch Login/Registro */}
         <div
           style={{
             textAlign: "center",

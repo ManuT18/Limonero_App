@@ -12,17 +12,39 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Loader2 } from "lucide-react";
 
+/*
+  -------------------------------------------------------------------------
+  COMPONENTE DE CONTENIDO (AppContent)
+  Este componente contiene la lógica principal de la UI visual.
+  Se separa de 'App' para poder usar el hook 'useAuth' que provee AuthProvider.
+  -------------------------------------------------------------------------
+*/
 function AppContent() {
+  /*
+    A. ESTADO DE NAVEGACIÓN (Lazy Init)
+    Recupera la última pestaña visitada desde localStorage.
+    Si no existe, carga 'dashboard' por defecto.
+  */
   const [currentTab, setCurrentTab] = useState(() => {
     return localStorage.getItem("limonero_current_tab") || "dashboard";
   });
+
   const { session, loading } = useAuth();
 
+  /*
+    B. MANEJADOR DE CAMBIO DE PESTAÑA
+    Actualiza el estado y persiste la elección en el navegador del usuario
+    para que al recargar (F5) vuelva al mismo lugar.
+  */
   const handleTabChange = (tab) => {
     setCurrentTab(tab);
     localStorage.setItem("limonero_current_tab", tab);
   };
 
+  /*
+    C. PANTALLA DE CARGA
+    Mientras Supabase verifica si el usuario está logueado, muestra un spinner.
+  */
   if (loading) {
     return (
       <div
@@ -44,10 +66,18 @@ function AppContent() {
     );
   }
 
+  /*
+    D. PROTECCIÓN DE RUTA (Guard)
+    Si no hay sesión activa, bloquea el acceso y muestra el Login.
+  */
   if (!session) {
     return <Login />;
   }
 
+  /*
+    E. RENDERIZADO PRINCIPAL
+    Si hay usuario, muestra la Navbar y el módulo seleccionado (Routing Manual).
+  */
   return (
     <div
       style={{
@@ -69,6 +99,14 @@ function AppContent() {
   );
 }
 
+/*
+  -------------------------------------------------------------------------
+  COMPONENTE RAÍZ (App)
+  Punto de entrada de la jerarquía de componentes.
+  Su única función es configurar los Proveedores (Providers) globales
+  para que el resto de la app tenga acceso a Tema, Autenticación y Toasts.
+  -------------------------------------------------------------------------
+*/
 function App() {
   return (
     <ThemeProvider>

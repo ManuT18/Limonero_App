@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../hooks/supabaseClient";
 import { useAuth } from "../context/AuthContext";
 import {
   Download,
@@ -123,25 +123,27 @@ const parseCSV = (text) => {
 
 // Helper to parse dates from various CSV formats
 const parseCSVDate = (dateStr) => {
-    if (!dateStr) return new Date().toISOString();
-    
-    // Case 1: "DD/MM/YYYY - HH:mm" (Custom App Format)
-    // Regex matches: 27/12/2025 - 03:22
-    const ddmmyyyyMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s-\s(\d{1,2}):(\d{1,2})$/);
-    if (ddmmyyyyMatch) {
-        const [_, day, month, year, hours, minutes] = ddmmyyyyMatch;
-        return new Date(year, month - 1, day, hours, minutes).toISOString();
-    }
+  if (!dateStr) return new Date().toISOString();
 
-    // Case 2: Standard Date parse (ISO, US format "12/15/2025, ...")
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-        return d.toISOString();
-    }
-    
-    // Fallback: Current time if unparseable
-    console.warn("Could not parse date:", dateStr, "- falling back to now.");
-    return new Date().toISOString();
+  // Case 1: "DD/MM/YYYY - HH:mm" (Custom App Format)
+  // Regex matches: 27/12/2025 - 03:22
+  const ddmmyyyyMatch = dateStr.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s-\s(\d{1,2}):(\d{1,2})$/
+  );
+  if (ddmmyyyyMatch) {
+    const [_, day, month, year, hours, minutes] = ddmmyyyyMatch;
+    return new Date(year, month - 1, day, hours, minutes).toISOString();
+  }
+
+  // Case 2: Standard Date parse (ISO, US format "12/15/2025, ...")
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString();
+  }
+
+  // Fallback: Current time if unparseable
+  console.warn("Could not parse date:", dateStr, "- falling back to now.");
+  return new Date().toISOString();
 };
 
 export function Settings() {
@@ -568,4 +570,3 @@ export function Settings() {
 }
 
 // Utilidades CSV (Keep existing logic)
-

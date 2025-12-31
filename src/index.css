@@ -1,88 +1,118 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
-/* Reset Box Sizing */
-*, *::before, *::after {
+/*
+  -------------------------------------------------------------------------
+  RESET BÁSICO (Box Sizing)
+  Asegura que el padding y border no aumenten el ancho total de los elementos.
+  -------------------------------------------------------------------------
+*/
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
+/*
+  -------------------------------------------------------------------------
+  VARIABLES CSS (THEMING)
+  Define los colores y valores base del sistema de diseño (Tokens).
+  Usam :root para el tema CLARO por defecto.
+  La clase .dark sobrescribe estos valores para el MODO OSCURO.
+  -------------------------------------------------------------------------
+*/
 :root {
-  /* Default (Light) Palette */
-  --primary: #6366f1; /* Indigo 500 */
-  --primary-hover: #4f46e5; /* Indigo 600 */
-  --primary-light: #e0e7ff; /* Indigo 100 */
-  
-  --background: #f8fafc; /* Slate 50 */
-  --surface: #ffffff;
-  --input-bg: #ffffff; /* New variable for inputs */
-  
-  --text-main: #0f172a; /* Slate 900 */
-  --text-secondary: #64748b; /* Slate 500 */
-  --text-light: #94a3b8; /* Slate 400 */
+  /* Paleta Light (Claro) */
+  --primary: #6366f1;         /* Indigo 500 - Color principal de acción */
+  --primary-hover: #4f46e5;   /* Indigo 600 - Hover de botones */
+  --primary-light: #e0e7ff;   /* Indigo 100 - Fondos suaves */
 
-  --border: #e2e8f0; /* Slate 200 */
-  
-  --success: #10b981; /* Emerald 500 */
-  --success-hover: #059669; /* Emerald 600 */
+  --background: #f8fafc;      /* Slate 50 - Fondo de la página */
+  --surface: #ffffff;         /* Blanco - Fondo de tarjetas */
+  --input-bg: #ffffff;        /* Fondo de inputs */
+
+  --text-main: #0f172a;       /* Slate 900 - Texto principal */
+  --text-secondary: #64748b;  /* Slate 500 - Texto secundario/labels */
+  --text-light: #94a3b8;      /* Slate 400 - Texto deshabilitado o placeholder */
+
+  --border: #e2e8f0;          /* Slate 200 - Bordes sutiles */
+
+  --success: #10b981;         /* Emerald 500 - Éxito */
+  --success-hover: #059669;
   --success-bg: #d1fae5;
-  --danger: #ef4444; /* Red 500 */
+  --danger: #ef4444;          /* Red 500 - Error/Eliminar */
   --danger-bg: #fee2e2;
 
-  --radius: 0.75rem; /* 12px */
-  --radius-lg: 1rem; /* 16px */
-  
-  /* Shadows (Neutral) */
+  --radius: 0.75rem;            /* 12px - Bordes redondeados estándar */
+  --radius-lg: 1rem;            /* 16px - Bordes redondeados grandes (Tarjetas) */
+
+  /* Sombras (Profundidad) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
-/* Dark Palette overrides */
+/* 
+  OVERRIDES MODO OSCURO (.dark)
+  Cuando la etiqueta HTML tiene la clase 'dark', estas variables toman precedencia.
+  Cambia a colores oscuros de fondo y colores brillantes de acento (Lima).
+*/
 .dark {
-  --background: #121212;
-  --surface: #1E1E1E;
-  --input-bg: #2C2C2C;
+  --background: #121212;       /* Slate 900 - Fondo de la página */
+  --surface: #1e1e1e;          /* Slate 800 - Fondo de tarjetas */
+  --input-bg: #2c2c2c;         /* Fondo de inputs */
 
-  --text-main: #E0E0E0;
-  --text-secondary: #A0A0A0;
-  --text-light: #6e6e6e;
+  --text-main: #e0e0e0;        /* Slate 100 - Texto principal */
+  --text-secondary: #a0a0a0;   /* Slate 500 - Texto secundario/labels */
+  --text-light: #6e6e6e;       /* Slate 400 - Texto deshabilitado o placeholder */
 
-  --primary: #C8FF42; /* Brand Lime */
-  --primary-hover: #B2E639;
-  --primary-light: rgba(200, 255, 66, 0.15); /* Low opacity lime */
+  --primary: #c8ff42;          /* Brand Lime - Nuevo color principal en oscuro para contraste */
+  --primary-hover: #b2e639;
+  --primary-light: rgba(200, 255, 66, 0.15);
 
-  /* Specific override for base primary buttons if needed, or keep generic primary */
-  
-  --border: #333333;
-  
-  --success: #81C784;
+  --border: #333333;           /* Slate 900 - Bordes sutiles */
+
+  --success: #81c784;          /* Emerald 500 - Éxito */
   --success-hover: #66bb6a;
   --success-bg: rgba(129, 199, 132, 0.2);
-  
-  --danger: #E57373;
+
+  --danger: #e57373;           /* Red 500 - Error/Eliminar */
   --danger-bg: rgba(229, 115, 115, 0.2);
 
-  /* Adjust shadows for dark mode to be more subtle or removed */
+  /* Sombras más sutiles para fondos oscuros */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4),
+    0 4px 6px -4px rgba(0, 0, 0, 0.3);
 }
 
-/* Special case for Primary Button in Dark Mode */
+/* Excepción: Botón primario en Dark Mode con gradiente púrpura */
 .dark .btn-primary {
-  background: linear-gradient(135deg, #7B68EE 0%, #614ddb 100%); /* Call to Action Purple */
+  background: linear-gradient(135deg, #7b68ee 0%, #614ddb 100%);
   color: white;
 }
 
+/*
+  -------------------------------------------------------------------------
+  ESTILOS GLOBALES (Body)
+  Configuración tipográfica y de color base para toda la página.
+  -------------------------------------------------------------------------
+*/
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   background-color: var(--background);
   color: var(--text-main);
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
 }
 
-/* Layout Utilities */
+/*
+  -------------------------------------------------------------------------
+  UTILIDADES DE LAYOUT
+  Clases genéricas para contenedores y grillas responsive.
+  -------------------------------------------------------------------------
+*/
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -95,7 +125,12 @@ body {
   gap: 2rem;
 }
 
-/* Components */
+/*
+  -------------------------------------------------------------------------
+  COMPONENTES: TARJETAS (Cards)
+  Bloques fundamentales de la UI. Fondo blanco/oscuro con sombra suave.
+  -------------------------------------------------------------------------
+*/
 .card {
   background: var(--surface);
   border-radius: var(--radius-lg);
@@ -106,9 +141,11 @@ body {
 }
 
 .card:hover {
+  /* Efecto de elevación al pasar el mouse */
   box-shadow: var(--shadow-lg);
 }
 
+/* Tarjeta de Resultado (Calculadora) - Sticky para seguir al usuario al scrollear */
 .card-result {
   position: sticky;
   top: 6rem;
@@ -116,21 +153,26 @@ body {
 }
 
 .dark .card-result {
-  background: linear-gradient(to bottom right, #1E1E1E, #252525);
+  background: linear-gradient(to bottom right, #1e1e1e, #252525);
   border-color: var(--border);
 }
 
+/* Tarjeta de Precio Final Destacada */
 .price-card {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-hover) 100%
+  );
   padding: 1.5rem;
   border-radius: var(--radius);
-  color: white; /* Default for Light Mode (Indigo bg) */
+  color: white;
   margin-top: 1rem;
   box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
 }
 
 .dark .price-card {
-  color: #121212; /* Dark text for Dark Mode (Lime bg) */
+  color: #121212;
   box-shadow: 0 10px 15px -3px rgba(200, 255, 66, 0.3);
 }
 
@@ -155,7 +197,12 @@ body {
   gap: 0.5rem;
 }
 
-/* Inputs */
+/*
+  -------------------------------------------------------------------------
+  COMPONENTES: INPUTS Y FORMULARIOS
+  Estilos unificados para inputs de texto, números y selects.
+  -------------------------------------------------------------------------
+*/
 .input-group {
   margin-bottom: 1.25rem;
 }
@@ -177,7 +224,7 @@ body {
   color: var(--text-main);
   font-size: 0.95rem;
   transition: all 0.2s;
-  box-sizing: border-box; /* Fix width issues */
+  box-sizing: border-box;
 }
 
 .input:focus {
@@ -186,8 +233,12 @@ body {
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-/* Buttons */
-/* Buttons */
+/*
+  -------------------------------------------------------------------------
+  COMPONENTES: BOTONES
+  Sistema de botones primarios, secundarios, fantasmas e íconos.
+  -------------------------------------------------------------------------
+*/
 .btn {
   display: inline-flex;
   align-items: center;
@@ -196,7 +247,6 @@ body {
   border-radius: var(--radius);
   font-weight: 600;
   font-size: 0.95rem;
-  /* Dynamic Transition */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   cursor: pointer;
@@ -213,17 +263,22 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-hover) 100%
+  );
   color: white;
   box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
 }
 
 .btn-primary:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3), 0 4px 6px -2px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3),
+    0 4px 6px -2px rgba(79, 70, 229, 0.1);
 }
 
 .btn-secondary {
-  background: white;
+  background: var(--background);
   border: 1px solid var(--border);
   color: var(--text-secondary);
 }
@@ -243,8 +298,7 @@ body {
 .btn-ghost:hover {
   background: var(--primary-light);
   color: var(--primary);
-  /* Ghost buttons often look better with less elevation, but we'll apply consistency */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .btn-danger {
@@ -275,7 +329,12 @@ body {
   transform: scale(0.95);
 }
 
-/* Tables */
+/*
+  -------------------------------------------------------------------------
+  COMPONENTES: TABLAS
+  Tablas limpias con bordes y hover.
+  -------------------------------------------------------------------------
+*/
 .table-container {
   overflow-x: auto;
   border-radius: var(--radius);
@@ -305,6 +364,12 @@ body {
   color: var(--text-main);
 }
 
+/*
+  -------------------------------------------------------------------------
+  COMPONENTES: BADGES (Etiquetas)
+  Pequeñas píldoras de estado (ej: Activo, Ingreso, Egreso).
+  -------------------------------------------------------------------------
+*/
 .badge {
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
@@ -312,13 +377,32 @@ body {
   font-weight: 600;
 }
 
-.badge-success { background: var(--success-bg); color: #065f46; }
-.badge-danger { background: var(--danger-bg); color: #991b1b; }
+.badge-success {
+  background: var(--success-bg);
+  color: #065f46;
+}
+.badge-danger {
+  background: var(--danger-bg);
+  color: #991b1b;
+}
 
-.dark .badge-success { background: rgba(129, 199, 132, 0.15); color: #81C784; border: 1px solid rgba(129, 199, 132, 0.3); }
-.dark .badge-danger { background: rgba(229, 115, 115, 0.15); color: #E57373; border: 1px solid rgba(229, 115, 115, 0.3); }
+.dark .badge-success {
+  background: rgba(129, 199, 132, 0.15);
+  color: #81c784;
+  border: 1px solid rgba(129, 199, 132, 0.3);
+}
+.dark .badge-danger {
+  background: rgba(229, 115, 115, 0.15);
+  color: #e57373;
+  border: 1px solid rgba(229, 115, 115, 0.3);
+}
 
-/* Navbar Buttons */
+/*
+  -------------------------------------------------------------------------
+  NAVBAR Y BOTONES GRANDES
+  Estilos específicos de la barra de navegación y botones especiales.
+  -------------------------------------------------------------------------
+*/
 .btn-nav {
   background: transparent;
   color: var(--text-secondary);
@@ -340,14 +424,18 @@ body {
 }
 
 .dark .btn-nav.active {
-  background: #333333; /* Dark grey as requested */
+  background: #333333;
   color: var(--primary);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
 }
 
-/* Custom Dynamic Buttons */
+/* Botón Grande Gradiente (Impresión) */
 .btn-gradient-success {
-  background: linear-gradient(135deg, var(--success) 0%, var(--success-hover) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--success) 0%,
+    var(--success-hover) 100%
+  );
   border-radius: var(--radius);
   border: none;
   cursor: pointer;
@@ -363,16 +451,16 @@ body {
 
 .btn-gradient-success:hover {
   transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 20px 25px -5px rgba(70, 229, 123, 0.4), 0 8px 10px -6px rgba(70, 229, 123, 0.1);
+  box-shadow: 0 20px 25px -5px rgba(70, 229, 123, 0.4),
+    0 8px 10px -6px rgba(70, 229, 123, 0.1);
   filter: brightness(1.05);
 }
-
 
 .btn-gradient-success:active {
   transform: translateY(0) scale(0.98);
 }
 
-/* Navbar Styles (Refactored from inline) */
+/* Navbar Container */
 .navbar {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
@@ -384,7 +472,7 @@ body {
 }
 
 .dark .navbar {
-  background: rgba(30, 30, 30, 0.8); /* Darker semi-transparent for dark mode */
+  background: rgba(30, 30, 30, 0.8);
 }
 
 .navbar-container {
@@ -403,8 +491,11 @@ body {
 }
 
 .dark .navbar-logo-bg {
-  /* Ensure the logo pop fits the dark theme or keep it vibrant */
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  color: #121212; /* Dark icon on bright lime */
+  background: linear-gradient(
+    135deg,
+    var(--primary) 0%,
+    var(--primary-hover) 100%
+  );
+  color: #121212;
   box-shadow: 0 4px 10px rgba(200, 255, 66, 0.3);
 }
