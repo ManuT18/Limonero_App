@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
+import { DeleteAccount } from "./DeleteAccount";
 
 const ConfirmToast = ({ closeToast, onConfirm, message }) => (
   <div>
@@ -565,6 +566,9 @@ export function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Sección Eliminar Cuenta */}
+      <DeleteAccount />
     </div>
   );
 }
