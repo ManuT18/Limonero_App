@@ -18,6 +18,15 @@ import {
   PieChart,
   Loader2,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 /*
   -------------------------------------------------------------------------
@@ -143,33 +152,6 @@ export function Dashboard() {
     });
     return months;
   }, [cashbook]);
-
-  // Escala para el gráfico de líneas (Normalización visual)
-  const maxChartValue = Math.max(
-    ...chartData.map((d) => Math.max(d.income, d.expense)),
-    100
-  );
-
-  // Helpers para gráfico SVG (Puntos y Líneas)
-  const getCoord = (i, val) => {
-    const x = i * 20; // Distribuir 6 puntos en 100% (0, 20, 40, 60, 80, 100)
-    const y = 100 - (val / maxChartValue) * 100;
-    return { x, y };
-  };
-
-  const pointsIncome = chartData
-    .map((d, i) => {
-      const { x, y } = getCoord(i, d.income);
-      return `${x},${y}`;
-    })
-    .join(" ");
-
-  const pointsExpense = chartData
-    .map((d, i) => {
-      const { x, y } = getCoord(i, d.expense);
-      return `${x},${y}`;
-    })
-    .join(" ");
 
   if (loading)
     return (
@@ -341,151 +323,92 @@ export function Dashboard() {
             <TrendingUp size={18} /> Ingresos vs Egresos (6 Meses)
           </div>
 
-          <div style={{ position: "relative", paddingTop: "1rem" }}>
-            {/* Contenedor SVG */}
-            <div style={{ height: "200px", width: "100%" }}>
-              <svg
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                style={{ width: "100%", height: "100%", overflow: "visible" }}
+          <div
+            style={{
+              position: "relative",
+              paddingTop: "1rem",
+              height: "300px",
+              width: "100%",
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
               >
-                {/* Eje Y (Línea base opcional) */}
-                <line
-                  x1="0"
-                  y1="100"
-                  x2="100"
-                  y2="100"
+                <defs>
+                  <linearGradient
+                    id="colorIngresos"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorEgresos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EF4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
                   stroke="var(--border)"
-                  strokeWidth="1"
+                  opacity={0.5}
                 />
-
-                {/* Línea de Ingresos */}
-                <polyline
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="2"
-                  points={pointsIncome}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                  dy={10}
                 />
-
-                {/* Línea de Egresos */}
-                <polyline
-                  fill="none"
-                  stroke="#EF4444"
-                  strokeWidth="2"
-                  points={pointsExpense}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
+                  tickFormatter={(val) => `$${val}`}
                 />
-
-                {/* Puntos (Ingresos) */}
-                {chartData.map((d, i) => {
-                  const { x, y } = getCoord(i, d.income);
-                  return (
-                    <circle
-                      key={`inc-${i}`}
-                      cx={x}
-                      cy={y}
-                      r="1.5"
-                      fill="#10B981"
-                      stroke="var(--card-bg)"
-                      strokeWidth="0.5"
-                    >
-                      <title>Ingresos: ${d.income}</title>
-                    </circle>
-                  );
-                })}
-
-                {/* Puntos (Egresos) */}
-                {chartData.map((d, i) => {
-                  const { x, y } = getCoord(i, d.expense);
-                  return (
-                    <circle
-                      key={`exp-${i}`}
-                      cx={x}
-                      cy={y}
-                      r="1.5"
-                      fill="#EF4444"
-                      stroke="var(--card-bg)"
-                      strokeWidth="0.5"
-                    >
-                      <title>Egresos: ${d.expense}</title>
-                    </circle>
-                  );
-                })}
-              </svg>
-            </div>
-
-            {/* Etiquetas del Eje X */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "0.5rem",
-              }}
-            >
-              {chartData.map((d, i) => (
-                <div
-                  key={i}
-                  style={{
-                    fontSize: "0.7rem",
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "var(--card-bg)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    color: "var(--text-main)",
+                  }}
+                  itemStyle={{ fontSize: "0.9rem", fontWeight: 500 }}
+                  labelStyle={{
                     color: "var(--text-secondary)",
-                    textAlign: "center",
-                    width: "20px", // Ancho fijo para centrar respecto al punto
-                    transform: "translateX(0)", // Ajuste visual si es necesario
+                    marginBottom: "0.5rem",
                   }}
-                >
-                  {d.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Leyenda */}
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                justifyContent: "center",
-                marginTop: "1rem",
-                fontSize: "0.8rem",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                }}
-              >
-                <div
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    background: "#10B981",
-                    borderRadius: "50%",
-                  }}
-                ></div>
-                <span>Ingresos</span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                }}
-              >
-                <div
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    background: "#EF4444",
-                    borderRadius: "50%",
-                  }}
-                ></div>
-                <span>Egresos</span>
-              </div>
-            </div>
+                  formatter={(value) => [
+                    `$${value.toLocaleString()}`,
+                    undefined,
+                  ]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="income"
+                  name="Ingresos"
+                  stroke="#10B981"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorIngresos)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expense"
+                  name="Egresos"
+                  stroke="#EF4444"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorEgresos)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
