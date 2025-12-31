@@ -36,9 +36,13 @@ import {
   -------------------------------------------------------------------------
 */
 export function Dashboard() {
+  const { user } = useAuth();
   const [inventory, setInventory] = useState([]);
   const [cashbook, setCashbook] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const userName =
+    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Usuario";
 
   /*
     A. CARGA DE DATOS (Data Fetching)
@@ -171,6 +175,23 @@ export function Dashboard() {
       <h2 className="section-title" style={{ marginBottom: "2rem" }}>
         <Activity size={24} /> Panel de Control
       </h2>
+
+      {/* Saludo de Bienvenida */}
+      <div style={{ marginBottom: "2rem" }}>
+        <h1
+          style={{
+            fontSize: "1.8rem",
+            fontWeight: "bold",
+            color: "var(--text-main)",
+            marginBottom: "0.25rem",
+          }}
+        >
+          ¡Hola, {userName}! 👋
+        </h1>
+        <p style={{ color: "var(--text-secondary)", fontSize: "1rem" }}>
+          Aquí tienes un resumen de tu actividad reciente en el taller.
+        </p>
+      </div>
 
       {/* KPI Cards */}
       <div
