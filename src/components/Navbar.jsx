@@ -44,7 +44,7 @@ export function Navbar({ currentTab, onTabChange }) {
     { id: "dashboard", label: "Dashboard", icon: Activity },
     { id: "calculator", label: "Calculadora", icon: Calculator },
     { id: "inventory", label: "Inventario", icon: Package },
-    { id: "cashbook", label: "Caja", icon: BookOpen },
+    { id: "cashbook", label: "Libro de Caja", icon: BookOpen },
     { id: "settings", label: "Configuración", icon: Settings },
   ];
 
