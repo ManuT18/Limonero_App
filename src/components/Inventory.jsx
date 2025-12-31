@@ -626,6 +626,7 @@ export function Inventory() {
                                 height: "12px",
                                 borderRadius: "50%",
                                 background: getColor(item.color),
+                                flexShrink: 0,
                                 border:
                                   (item.color || "").toLowerCase() === "blanco"
                                     ? "1px solid var(--border)"
@@ -642,6 +643,7 @@ export function Inventory() {
                                 ? "badge-danger"
                                 : "badge-success"
                             }`}
+                            style={{ whiteSpace: "nowrap" }}
                           >
                             {item.stock} gr
                           </span>

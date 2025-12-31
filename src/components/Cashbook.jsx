@@ -370,7 +370,14 @@ export function Cashbook() {
             <BookOpen size={24} /> Movimientos
           </div>
 
-          <div style={{ display: "flex", gap: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1rem",
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
+            }}
+          >
             <button
               className="btn btn-secondary"
               onClick={() => {
