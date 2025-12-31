@@ -15,7 +15,6 @@ import {
   Sun,
   Moon,
   Activity,
-  Activity,
   LogOut,
   Menu,
   X,
