@@ -427,16 +427,16 @@ export function StoreManager() {
 
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button
-                  className="btn-icon"
-                  style={{ color: "var(--primary)" }}
+                  className="btn-icon-action btn-icon-edit"
                   onClick={() => handleEdit(product)}
+                  title="Editar"
                 >
                   <Pencil size={18} />
                 </button>
                 <button
-                  className="btn-icon"
-                  style={{ color: "var(--danger)" }}
+                  className="btn-icon-action btn-icon-delete"
                   onClick={() => handleDelete(product.id)}
+                  title="Eliminar"
                 >
                   <Trash2 size={18} />
                 </button>

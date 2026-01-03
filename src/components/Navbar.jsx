@@ -150,8 +150,7 @@ export function Navbar({ currentTab, onTabChange }) {
             {/* CERRAR SESIÓN */}
             <button
               onClick={signOut}
-              className="btn btn-ghost nav-icon-btn"
-              style={{ color: "var(--danger)" }}
+              className="btn btn-ghost nav-icon-btn btn-logout"
               title="Cerrar Sesión"
             >
               <LogOut size={20} />
