@@ -13,6 +13,46 @@ import {
   Check,
 } from "lucide-react";
 
+const ConfirmToast = ({ closeToast, onConfirm, message }) => (
+  <div>
+    <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>{message}</p>
+    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+      <button
+        onClick={closeToast}
+        style={{
+          background: "transparent",
+          border: "1px solid currentColor",
+          color: "inherit",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+        }}
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={() => {
+          onConfirm();
+          closeToast();
+        }}
+        style={{
+          background: "#EF4444",
+          border: "none",
+          color: "white",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "4px",
+          cursor: "pointer",
+          fontSize: "0.8rem",
+          fontWeight: "bold",
+        }}
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+);
+
 /*
   -------------------------------------------------------------------------
   COMPONENTE STORE MANAGER (GESTIÓN DE TIENDA)
@@ -140,16 +180,31 @@ export function StoreManager() {
   };
 
   // Delete Product
-  const handleDelete = async (id) => {
-    if (!confirm("¿Eliminar este producto?")) return;
-    try {
-      const { error } = await supabase.from("products").delete().eq("id", id);
-      if (error) throw error;
-      setProducts(products.filter((p) => p.id !== id));
-      toast.success("Producto eliminado");
-    } catch (error) {
-      toast.error("Error al eliminar: " + error.message);
-    }
+  const handleDelete = (id) => {
+    toast.error(
+      ({ closeToast }) => (
+        <ConfirmToast
+          closeToast={closeToast}
+          message="¿Eliminar este producto?"
+          onConfirm={async () => {
+            try {
+              const { error } = await supabase
+                .from("products")
+                .delete()
+                .eq("id", id);
+              if (error) throw error;
+              setProducts(products.filter((p) => p.id !== id));
+              toast.dismiss();
+              // Pequeño delay para que el dismiss no oculte el nuevo toast inmediatamente
+              setTimeout(() => toast.success("Producto eliminado"), 100);
+            } catch (error) {
+              toast.error("Error al eliminar: " + error.message);
+            }
+          }}
+        />
+      ),
+      { autoClose: false, closeOnClick: false, icon: false }
+    );
   };
 
   // Edit Trigger

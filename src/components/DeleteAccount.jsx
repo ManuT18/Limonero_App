@@ -43,7 +43,15 @@ export function DeleteAccount() {
         );
       }
 
-      // 3. Si credenciales son válidas, ejecutar el borrado (RPC)
+      // 3. Pre-cleanup: Borrar datos dependientes para evitar errores de Foreign Key
+      // (Si las tablas no tienen ON DELETE CASCADE)
+      await supabase.from("products").delete().eq("user_id", user.id);
+      await supabase.from("inventory").delete().eq("user_id", user.id);
+      await supabase.from("cashbook").delete().eq("user_id", user.id);
+      await supabase.from("presets").delete().eq("user_id", user.id);
+      await supabase.from("user_config").delete().eq("user_id", user.id);
+
+      // 4. Si credenciales son válidas, ejecutar el borrado (RPC)
       const { error: rpcError } = await supabase.rpc("delete_user");
       if (rpcError) throw rpcError;
 
