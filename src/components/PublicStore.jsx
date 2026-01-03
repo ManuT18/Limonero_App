@@ -108,7 +108,9 @@ export function PublicStore({ onLoginClick }) {
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <button
               onClick={toggleTheme}
-              className="btn btn-ghost"
+              className={`btn btn-ghost ${
+                theme === "dark" ? "btn-theme-sun" : "btn-theme-moon"
+              }`}
               style={{
                 padding: "0.5rem",
                 borderRadius: "50%",
@@ -117,6 +119,7 @@ export function PublicStore({ onLoginClick }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                transition: "transform 0.2s, color 0.2s, background-color 0.2s",
               }}
               title="Cambiar Tema"
             >

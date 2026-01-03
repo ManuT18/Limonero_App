@@ -657,7 +657,7 @@ select.input {
     gap: 0.5rem;
     border: none;
     padding: 0;
-    margin: 0;
+    margin: 0 0 0 1.5rem; 
     width: auto;
   }
 
@@ -666,9 +666,41 @@ select.input {
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    display: flex; /* Asegura centrado flex */
+    display: flex; 
     align-items: center;
     justify-content: center;
-    /* Colores específicos se manejan en JSX o aqui si se desea */
+    transition: transform 0.2s, color 0.2s, background-color 0.2s;
   }
+}
+
+/* 
+  Estilos específicos para el Toggle de Tema 
+  - Sun (Amarillo) en Light Mode
+  - Moon (Azul/Celeste) en Dark Mode
+*/
+.btn-theme-sun {
+  color: #eab308; 
+  background: transparent;
+}
+.btn-theme-sun:hover {
+  color: #facc15; 
+  background: rgba(234, 179, 8, 0.1); 
+  transform: translateY(-2px);
+}
+
+.btn-theme-moon {
+  color: #6366f1; 
+  background: transparent;
+}
+.dark .btn-theme-moon {
+  color: #60a5fa; 
+}
+.btn-theme-moon:hover {
+  color: #3b82f6; 
+  background: rgba(59, 130, 246, 0.1); 
+  transform: translateY(-2px);
+}
+.dark .btn-theme-moon:hover {
+  color: #93c5fd; 
+  background: rgba(96, 165, 250, 0.15);
 }

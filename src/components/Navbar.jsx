@@ -133,7 +133,9 @@ export function Navbar({ currentTab, onTabChange }) {
             {/* TOGGLE MODO OSCURO */}
             <button
               onClick={toggleTheme}
-              className="btn btn-ghost nav-icon-btn"
+              className={`btn btn-ghost nav-icon-btn ${
+                theme === "dark" ? "btn-theme-sun" : "btn-theme-moon"
+              }`}
               title={theme === "dark" ? "Cambiar a Claro" : "Cambiar a Oscuro"}
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
