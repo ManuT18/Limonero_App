@@ -134,6 +134,7 @@ export function Navbar({ currentTab, onTabChange }) {
             <button
               onClick={toggleTheme}
               className="btn btn-ghost nav-icon-btn"
+              title={theme === "dark" ? "Cambiar a Claro" : "Cambiar a Oscuro"}
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
               <span
@@ -145,7 +146,12 @@ export function Navbar({ currentTab, onTabChange }) {
             </button>
 
             {/* CERRAR SESIÓN */}
-            <button onClick={signOut} className="btn btn-ghost nav-icon-btn">
+            <button
+              onClick={signOut}
+              className="btn btn-ghost nav-icon-btn"
+              style={{ color: "var(--danger)" }}
+              title="Cerrar Sesión"
+            >
               <LogOut size={20} />
               <span
                 className="hamburger-btn"

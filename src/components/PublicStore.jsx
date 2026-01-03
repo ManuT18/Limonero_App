@@ -108,33 +108,23 @@ export function PublicStore({ onLoginClick }) {
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
             <button
               onClick={toggleTheme}
+              className="btn btn-ghost"
               style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--text-secondary)",
                 padding: "0.5rem",
+                borderRadius: "50%",
+                width: "40px",
+                height: "40px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
               title="Cambiar Tema"
             >
               {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <button
-              onClick={onLoginClick}
-              className="btn"
-              style={{
-                background: "transparent",
-                border: "1px solid var(--border)",
-                color: "var(--text-main)",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                fontSize: "0.9rem",
-                padding: "0.5rem 1rem",
-              }}
-            >
+            <button onClick={onLoginClick} className="btn btn-secondary">
               <LogIn size={16} />
-              <span style={{ fontWeight: 600 }}>Ingresar</span>
+              <span>Ingresar</span>
             </button>
           </div>
         </div>

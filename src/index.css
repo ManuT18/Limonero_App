@@ -242,6 +242,7 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
+  appearance: textfield; /* Standard */
 }
 
 /* Mejorar apariencia de Selects */
@@ -663,7 +664,10 @@ select.input {
   .nav-icon-btn {
     padding: 0.5rem;
     border-radius: 50%;
-    width: auto;
+    width: 40px;
+    height: 40px;
+    display: flex; /* Asegura centrado flex */
+    align-items: center;
     justify-content: center;
     /* Colores específicos se manejan en JSX o aqui si se desea */
   }
