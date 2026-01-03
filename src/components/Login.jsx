@@ -63,6 +63,12 @@ export function Login() {
         // --- MODO LOGIN ---
         const { error } = await signIn({ email, password });
         if (error) throw error;
+
+        // RESET DE PESTAÑA:
+        // Si el usuario inicia sesión manualmente, forzamos que vaya al Dashboard.
+        // Esto sobrescribe cualquier "última visita" anterior para una experiencia fresca.
+        localStorage.setItem("limonero_current_tab", "dashboard");
+
         // La redirección/cambio de estado lo maneja AuthContext automáticamente
         // al detectar el cambio de sesión (onAuthStateChange).
       }
