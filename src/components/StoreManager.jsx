@@ -101,6 +101,9 @@ export function StoreManager() {
   };
 
   // Image Upload Handler
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -119,15 +122,30 @@ export function StoreManager() {
     }
 
     try {
+      setIsUploading(true);
+      setUploadProgress(10); // Inicio visual
+
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
+
+      // Simulación de progreso (Supabase JS no da progreso nativo fácil)
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) return prev;
+          return prev + 10;
+        });
+      }, 500);
 
       const { error: uploadError } = await supabase.storage
         .from("product-images")
         .upload(filePath, file);
 
+      clearInterval(progressInterval);
+
       if (uploadError) throw uploadError;
+
+      setUploadProgress(100); // Completado
 
       const { data } = supabase.storage
         .from("product-images")
@@ -137,6 +155,12 @@ export function StoreManager() {
       toast.success("Imagen subida correctamente");
     } catch (error) {
       toast.error("Error al subir imagen: " + error.message);
+    } finally {
+      // Pequeño delay para ver el 100%
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 500);
     }
   };
 
@@ -320,16 +344,60 @@ export function StoreManager() {
                   style={{ display: "flex", alignItems: "center", gap: "1rem" }}
                 >
                   <label
-                    className="btn btn-secondary"
-                    style={{ cursor: "pointer" }}
+                    className={`btn btn-secondary ${
+                      isUploading ? "disabled" : ""
+                    }`}
+                    style={{
+                      cursor: isUploading ? "not-allowed" : "pointer",
+                      position: "relative",
+                      overflow: "hidden",
+                    }}
                   >
-                    <ImageIcon size={18} style={{ marginRight: "0.5rem" }} />
-                    Subir Foto
+                    {isUploading ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          zIndex: 1,
+                        }}
+                      >
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>{uploadProgress}%</span>
+                      </div>
+                    ) : (
+                      <>
+                        <ImageIcon
+                          size={18}
+                          style={{ marginRight: "0.5rem" }}
+                        />
+                        Subir Foto
+                      </>
+                    )}
+
+                    {/* Barra de progreso visual (Fondo) */}
+                    {isUploading && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          bottom: 0,
+                          height: "100%",
+                          width: `${uploadProgress}%`,
+                          background: "var(--primary-light)",
+                          opacity: 0.5,
+                          transition: "width 0.5s ease-in-out",
+                          pointerEvents: "none",
+                        }}
+                      />
+                    )}
+
                     <input
                       type="file"
                       accept="image/jpeg, image/png, image/webp"
                       onChange={handleImageUpload}
                       style={{ display: "none" }}
+                      disabled={isUploading}
                     />
                   </label>
                   {formData.image_url && (
