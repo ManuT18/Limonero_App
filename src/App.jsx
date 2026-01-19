@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { Navbar } from "./components/Navbar";
 import { Calculator } from "./components/Calculator";
 import { Inventory } from "./components/Inventory";
@@ -183,6 +184,7 @@ function App() {
           hideProgressBar={true}
         />
         <AppContent />
+        <Analytics />
       </AuthProvider>
     </ThemeProvider>
   );
