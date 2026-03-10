@@ -39,19 +39,46 @@ export function DeleteAccount() {
 
       if (authError) {
         throw new Error(
-          "Contraseña incorrecta. No se pudo verificar tu identidad."
+          "Contraseña incorrecta. No se pudo verificar tu identidad.",
         );
       }
 
-      // 3. Pre-cleanup: Borrar datos dependientes para evitar errores de Foreign Key
-      // (Si las tablas no tienen ON DELETE CASCADE)
-      await supabase.from("products").delete().eq("user_id", user.id);
-      await supabase.from("inventory").delete().eq("user_id", user.id);
-      await supabase.from("cashbook").delete().eq("user_id", user.id);
-      await supabase.from("presets").delete().eq("user_id", user.id);
-      await supabase.from("user_config").delete().eq("user_id", user.id);
+      // 3. Pre-cleanup: Borrar datos dependientes
+      // IMPORTANTE: Checking de errores para evitar fallos silenciosos
 
-      // 4. Si credenciales son válidas, ejecutar el borrado (RPC)
+      // A. Limpiar Storage (Imágenes de productos)
+      const { data: userFiles } = await supabase.storage
+        .from("product-images")
+        .list(user.id + "/"); // Listar archivos en la carpeta del usuario
+
+      if (userFiles && userFiles.length > 0) {
+        const filesToRemove = userFiles.map((x) => `${user.id}/${x.name}`);
+        const { error: storageError } = await supabase.storage
+          .from("product-images")
+          .remove(filesToRemove);
+
+        if (storageError)
+          console.error("Error limpiando storage:", storageError);
+      }
+
+      // B. Limpiar Tablas (Software Cascade)
+      // Función helper para borrar y throw error si falla
+      const deleteTable = async (table) => {
+        const { error } = await supabase
+          .from(table)
+          .delete()
+          .eq("user_id", user.id);
+        if (error)
+          throw new Error(`Error al limpiar ${table}: ${error.message}`);
+      };
+
+      await deleteTable("products");
+      await deleteTable("inventory");
+      await deleteTable("cashbook");
+      await deleteTable("presets");
+      await deleteTable("user_config");
+
+      // 4. Si credenciales son válidas y limpieza exitosa, ejecutar el borrado (RPC)
       const { error: rpcError } = await supabase.rpc("delete_user");
       if (rpcError) throw rpcError;
 
