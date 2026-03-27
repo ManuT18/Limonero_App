@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Loader2 } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 
 /*
   -------------------------------------------------------------------------
@@ -183,6 +184,7 @@ function App() {
           hideProgressBar={true}
         />
         <AppContent />
+        <Analytics />
       </AuthProvider>
     </ThemeProvider>
   );
