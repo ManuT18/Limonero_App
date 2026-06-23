@@ -5,6 +5,24 @@ Una aplicación web moderna y eficiente para la gestión de emprendimientos de I
 ![El Limonero Badge](https://img.shields.io/badge/Estado-Desarrollo-success)
 ![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+![License](https://img.shields.io/badge/Licencia-CC%20BY--NC%204.0-red)
+
+---
+
+## ⚠️ Licencia y Derechos de Autor (Uso No Comercial)
+
+Este proyecto es de **código abierto**, pero está protegido bajo la licencia **[Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](LICENSE)**.
+
+### Lo que esto significa:
+*   **No Comercial**: Está estrictamente **prohibido** utilizar este código, modificarlo o distribuirlo con fines comerciales o lucrativos. No puedes usar partes de esta aplicación en plataformas web de pago, membresías cerradas, o para obtener beneficio económico directo o indirecto sin el consentimiento explícito del autor original.
+*   **Atribución**: Debes dar crédito de manera clara al autor original (Manuel Tauro) y enlazar a este repositorio si decides compartir o adaptar el proyecto.
+
+### 🍴 Por favor, realiza un Fork
+Si deseas experimentar con el código, añadir mejoras o adaptarlo a tus necesidades personales:
+*   **No clones el repositorio "como si nada"** en un repositorio limpio tuyo.
+*   En su lugar, **utiliza la función de Fork** de GitHub. Esto ayuda a mantener la trazabilidad del código original, respeta la autoría del trabajo y permite que otros makers sepan de dónde proviene la herramienta.
+
+---
 
 ## ✨ Características Principales
 
@@ -46,6 +64,8 @@ El sistema cuenta con alertas modernas (Toasts) que te informan del estado de tu
 - ℹ️ **Información**: Detalles sobre duplicados o exportaciones.
 - 🗑️ **Seguridad**: Confirmación interactiva antes de eliminar datos importantes.
 
+---
+
 ## 🚀 Uso e Instalación
 
 ### 👤 Para Usuarios Finales (Recomendado)
@@ -59,19 +79,19 @@ Si solo quieres usar la aplicación para gestionar tu emprendimiento, **no neces
 
 ### 💻 Para Desarrolladores y Contribuidores
 
-Si quieres modificar el código, probar nuevas funciones o aportar al proyecto, sigue estos pasos:
+Si quieres modificar el código, probar nuevas funciones o aportar al proyecto, por favor realiza un **Fork** de este repositorio y sigue estos pasos:
 
-> **Nota:** Para aportar cambios, por favor **crea una nueva rama** (branch) desde `master`.
+> **Note:** Para aportar cambios, por favor **crea una nueva rama** (branch) desde `master` en tu fork.
 
 **Requisitos previos:**
 
 - Tener instalado **[Node.js](https://nodejs.org/)** (versión LTS recomendada).
 - Tener instalado **Git**.
 
-1.  **Clonar el repositorio**
+1.  **Clonar tu Fork del repositorio** (reemplaza `TU_USUARIO` por tu cuenta de GitHub):
 
     ```bash
-    git clone https://github.com/ManuT18/Limonero_App.git
+    git clone https://github.com/TU_USUARIO/Limonero_App.git
     cd Limonero_App
     ```
 
@@ -98,6 +118,8 @@ Si quieres modificar el código, probar nuevas funciones o aportar al proyecto, 
     npm run build
     ```
     El archivo resultante estará en `dist/index.html`.
+
+---
 
 ## 🛠️ Tecnologías
 
